@@ -1,24 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
-  <meta
-    name="theme-color"
-    content="#11130f"
-  >
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>run.py</title>
-
-  <link
-    rel="stylesheet"
-    href="style.css"
-  >
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
@@ -26,44 +12,27 @@
   <div id="app">
 
     <!-- =====================================================
-         PRESENT-DAY IDE
+         SCREEN 1 — THE PRESENT
          ===================================================== -->
 
-    <main
-      id="screen-present"
-      class="screen active"
-    >
+    <main id="screen-present" class="screen active">
 
       <div class="editor-panel">
 
         <div class="panel-topbar">
-
-          <div class="window-controls">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-
-          <span class="filename">
-            run.py
-          </span>
+          <span class="filename">run.py</span>
 
           <span
             class="moth-icon"
             id="moth-icon"
+            title="..."
             aria-hidden="true"
           >
             🦋
           </span>
-
         </div>
 
-
         <div class="editor-body">
-
-          <div class="line-numbers" id="line-numbers">
-            1
-          </div>
 
           <textarea
             id="code-input"
@@ -75,20 +44,11 @@
 
         </div>
 
-
         <div class="panel-bottombar">
 
-          <div
-            id="editor-status"
-            class="editor-status"
-          >
-            Ready
-          </div>
+          <span id="present-status"></span>
 
-          <button
-            id="run-btn"
-            type="button"
-          >
+          <button id="run-btn">
             Run
           </button>
 
@@ -100,221 +60,105 @@
 
 
     <!-- =====================================================
-         HAUNTED TRANSITION
+         CRT TRANSITION
          ===================================================== -->
 
-    <div
-      id="transition"
-      class="transition"
-      aria-hidden="true"
-    >
+    <div id="crt-transition">
 
-      <div class="static-layer"></div>
+      <div id="static-layer"></div>
 
-      <div class="rgb-layer"></div>
+      <div id="crt-line"></div>
 
-      <div class="crt-line"></div>
-
-      <div class="boot-screen">
-
-        <pre
-          id="boot-text"
-          class="boot-text"
-        ></pre>
-
+      <div id="boot-screen">
+        <pre id="boot-text"></pre>
       </div>
 
     </div>
 
 
     <!-- =====================================================
-         1947 GAME
+         SCREEN 2 — 1947
          ===================================================== -->
 
-    <main
-      id="screen-1947"
-      class="screen game-screen"
-    >
+    <main id="screen-1947" class="screen game-screen">
 
-      <div class="game-shell">
+      <div class="crt-overlay"></div>
 
-        <!-- GAME HEADER -->
+      <header class="game-header">
 
-        <header class="game-header">
-
-          <div class="machine-heading">
-
-            <div class="game-era">
-              SEPTEMBER 9, 1947
-            </div>
-
-            <div class="game-machine">
-              HARVARD MARK II
-            </div>
-
-            <div class="game-subtitle">
-              RELAY COMPUTATION APPARATUS
-            </div>
-
+        <div>
+          <div class="game-title">
+            HARVARD MARK II
           </div>
 
+          <div class="game-subtitle">
+            COMPUTING RELAY CHAMBER — 1947
+          </div>
+        </div>
 
-          <div class="game-stats">
+        <div class="game-stats">
 
-            <div class="stat">
-              <span class="stat-label">
-                SWATS
-              </span>
-
-              <span
-                id="score"
-                class="stat-value"
-              >
-                0
-              </span>
-            </div>
-
-
-            <div class="stat">
-              <span class="stat-label">
-                MOUTHS OF THE TUBE
-              </span>
-
-              <span
-                id="lives"
-                class="stat-value"
-              >
-                3
-              </span>
-            </div>
-
+          <div>
+            SWATS:
+            <span id="swat-count">0</span>
+            / 10
           </div>
 
-        </header>
+          <div>
+            RANK:
+            <span id="rank-name">
+              GROUNDLING
+            </span>
+          </div>
+
+        </div>
+
+      </header>
 
 
-        <!-- MOTH ANNOUNCEMENT -->
+      <div class="game-stage">
+
+        <canvas id="game-canvas"></canvas>
 
         <div
-          id="moth-announcement"
-          class="moth-announcement"
-          aria-live="polite"
+          id="spawn-banner"
+          class="spawn-banner"
         ></div>
 
-
-        <!-- CANVAS -->
+        <div
+          id="error-category"
+          class="error-category"
+        ></div>
 
         <div
-          id="canvas-wrapper"
-          class="canvas-wrapper"
+          id="lives-display"
+          class="lives-display"
+        >
+          ♥ ♥ ♥
+        </div>
+
+        <div
+          id="game-message"
+          class="game-message"
         >
 
-          <canvas
-            id="game-canvas"
-          ></canvas>
-
-          <div
-            id="hit-flash"
-            class="hit-flash"
-          ></div>
-
-          <div
-            id="swat-indicator"
-            class="swat-indicator"
-          >
-            ✦
-          </div>
-
-        </div>
-
-
-        <!-- FOOTER -->
-
-        <div class="game-footer">
-
-          <div class="game-instructions">
-            CLICK THE WINGED SCOURGE TO SWAT IT
-          </div>
-
-          <button
-            id="logbook-btn"
-            class="small-button"
-            type="button"
-          >
-            LOGBOOK
-          </button>
-
-        </div>
-
-      </div>
-
-
-      <!-- ===================================================
-           LOGBOOK
-           =================================================== -->
-
-      <div
-        id="logbook-overlay"
-        class="modal-overlay hidden"
-      >
-
-        <div class="logbook">
-
-          <div class="logbook-cover">
-
-            <div class="book-emblem">
-              ✦
-            </div>
-
-            <div class="book-title">
-              THE LOGBOOK
-            </div>
-
-            <div class="book-subtitle">
-              OF INSECTUAL AFFLICTIONS
-            </div>
-
-            <button
-              id="close-logbook"
-              class="book-close"
-              type="button"
-            >
-              CLOSE
-            </button>
-
-          </div>
-
-
-          <div class="logbook-page">
+          <div class="message-card">
 
             <div
-              id="logbook-page-content"
-              class="logbook-page-content"
+              id="game-message-title"
+              class="game-message-title"
             ></div>
 
-          </div>
-
-
-          <div class="logbook-controls">
-
-            <button
-              id="prev-entry"
-              class="small-button"
-              type="button"
-            >
-              ← PREV
-            </button>
-
-            <span id="logbook-counter">
-              0 / 0
-            </span>
+            <div
+              id="game-message-text"
+              class="game-message-text"
+            ></div>
 
             <button
-              id="next-entry"
-              class="small-button"
-              type="button"
+              id="message-button"
+              class="message-button"
             >
-              NEXT →
+              CONTINUE
             </button>
 
           </div>
@@ -324,156 +168,80 @@
       </div>
 
 
-      <!-- ===================================================
-           RANK OVERLAY
-           =================================================== -->
+      <footer class="game-footer">
 
-      <div
-        id="rank-overlay"
-        class="modal-overlay hidden"
-      >
+        <span>
+          CLICK / TAP TO SWAT
+        </span>
 
-        <div class="rank-card">
+        <span>
+          THE MACHINE WATCHES
+        </span>
 
-          <div class="rank-small">
-            BY DECREE OF THE ANCIENT MACHINE
-          </div>
-
-          <div
-            id="rank-title"
-            class="rank-title"
-          ></div>
-
-          <div
-            id="rank-jab"
-            class="rank-jab"
-          ></div>
-
-          <div class="rank-divider">
-            ✦ ✦ ✦
-          </div>
-
-          <button
-            id="rank-dismiss"
-            class="small-button"
-            type="button"
-          >
-            ACCEPT THY GLORIOUS BURDEN
-          </button>
-
-        </div>
-
-      </div>
-
-
-      <!-- ===================================================
-           END GAME
-           =================================================== -->
-
-      <div
-        id="end-overlay"
-        class="modal-overlay hidden"
-      >
-
-        <div class="end-card">
-
-          <div
-            id="end-symbol"
-            class="end-symbol"
-          >
-            ✦
-          </div>
-
-          <div
-            id="end-heading"
-            class="end-heading"
-          ></div>
-
-          <div
-            id="end-text"
-            class="end-text"
-          ></div>
-
-          <div
-            id="end-entry"
-            class="end-entry"
-          ></div>
-
-          <button
-            id="end-dismiss"
-            class="small-button"
-            type="button"
-          >
-            RETURN
-          </button>
-
-        </div>
-
-      </div>
+      </footer>
 
     </main>
 
+
+    <!-- =====================================================
+         AUDIO
+         ===================================================== -->
+
+    <audio
+      id="audio-static"
+      src="assets/audio/static.wav"
+      preload="auto"
+    ></audio>
+
+    <audio
+      id="audio-boot"
+      src="assets/audio/boot-hum.wav"
+      preload="auto"
+    ></audio>
+
+    <audio
+      id="audio-spawn"
+      src="assets/audio/spawn.wav"
+      preload="auto"
+    ></audio>
+
+    <audio
+      id="audio-swing"
+      src="assets/audio/swing.wav"
+      preload="auto"
+    ></audio>
+
+    <audio
+      id="audio-hit"
+      src="assets/audio/hit.wav"
+      preload="auto"
+    ></audio>
+
+    <audio
+      id="audio-loss"
+      src="assets/audio/loss.wav"
+      preload="auto"
+    ></audio>
+
+    <audio
+      id="audio-win"
+      src="assets/audio/win.wav"
+      preload="auto"
+    ></audio>
+
+    <audio
+      id="audio-typewriter"
+      src="assets/audio/typewriter.wav"
+      preload="auto"
+    ></audio>
+
+    <audio
+      id="audio-fanfare"
+      src="assets/audio/fanfare.wav"
+      preload="auto"
+    ></audio>
+
   </div>
-
-
-  <!-- =======================================================
-       AUDIO
-       ======================================================= -->
-
-  <audio
-    id="audio-static"
-    src="assets/audio/static.wav"
-    preload="auto"
-  ></audio>
-
-  <audio
-    id="audio-boot"
-    src="assets/audio/boot-hum.wav"
-    preload="auto"
-  ></audio>
-
-  <audio
-    id="audio-spawn"
-    src="assets/audio/spawn.wav"
-    preload="auto"
-  ></audio>
-
-  <audio
-    id="audio-swing"
-    src="assets/audio/swing.wav"
-    preload="auto"
-  ></audio>
-
-  <audio
-    id="audio-hit"
-    src="assets/audio/hit.wav"
-    preload="auto"
-  ></audio>
-
-  <audio
-    id="audio-loss"
-    src="assets/audio/loss.wav"
-    preload="auto"
-  ></audio>
-
-  <audio
-    id="audio-win"
-    src="assets/audio/win.wav"
-    preload="auto"
-  ></audio>
-
-  <audio
-    id="audio-typewriter"
-    src="assets/audio/typewriter.wav"
-    preload="auto"
-  ></audio>
-
-  <audio
-    id="audio-fanfare"
-    src="assets/audio/fanfare.wav"
-    preload="auto"
-  ></audio>
-
 
   <script src="game.js"></script>
 
