@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>run.py</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div id="app">
+
+    <!-- SCREEN 1: the legitimate-looking tool -->
+    <main id="screen-present" class="screen active">
+      <div class="editor-panel">
+
+        <div class="panel-topbar">
+          <span class="filename">run.py</span>
+          <span class="moth-icon" id="moth-icon" aria-hidden="true">&#129416;</span>
+        </div>
+
+        <div class="editor-body">
+          <textarea
+            id="code-input"
+            spellcheck="false"
+            autocomplete="off"
+            autocapitalize="off"
+          >print("hello world")</textarea>
+        </div>
+
+        <div class="panel-bottombar">
+          <button id="run-btn">Run</button>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- SCREEN 2: 1947 game screen — empty for now, game.js will populate it -->
+    <main id="screen-1947" class="screen"></main>
+
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
