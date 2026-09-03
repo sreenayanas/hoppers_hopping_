@@ -365,7 +365,28 @@ const MOCKERY = {
     adjective: "Nameless",
     noun: "Attribute-Ghoul",
     context: "the object registry"
-  }
+  },
+
+  TimeoutError: {
+  name: "Endless Loop Revenant",
+  speed: 1.8,
+  size: 24,
+  behavior: "dash"
+},
+
+EmptyInputError: {
+  name: "The Vacant Moth",
+  speed: 0.8,
+  size: 18,
+  behavior: "straight"
+},
+
+UnknownError: {
+  name: "Unclassified Error-Moth",
+  speed: 1.2,
+  size: 18,
+  behavior: "straight"
+}
 };
 
 
@@ -640,9 +661,7 @@ async function runCode() {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        code
-      })
+      body: JSON.stringify({ code })
     });
 
     if (!response.ok) {
@@ -653,26 +672,25 @@ async function runCode() {
 
     console.log("Backend response:", data);
 
-    if (data.hasError) {
-      handleError(data.errorType);
-    } else {
+    if (data.status === "error") {
+      handleError(data.error_type);
+    } else if (data.status === "clean") {
       handleSuccess();
+    } else {
+      console.warn("Unknown backend response:", data);
     }
 
   } catch (error) {
-
     console.error("Backend unreachable:", error);
 
     alert(
-      "Couldn't reach the backend.\n\n" +
-      "Make sure your friend's Flask server is running."
+      "Couldn't reach the ancient machine.\n\n" +
+      "Make sure the Flask backend is running."
     );
 
   } finally {
-
     runBtn.disabled = false;
     runBtn.textContent = "Run";
-
   }
 }
 
