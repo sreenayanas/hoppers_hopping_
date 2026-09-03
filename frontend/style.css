@@ -1,26 +1,37 @@
-/* ---------- Reset & base ---------- */
+/* =========================================
+   RESET
+========================================= */
+
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+html,
 body {
-  font-family: 'JetBrains Mono', 'Courier New', monospace;
-  background: #14161B;
-  color: #E7E5E0;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  font-family: "Courier New", monospace;
+  background: #14161b;
+  color: #e7e5e0;
   overflow: hidden;
 }
 
-/* ---------- Screens ---------- */
+
+/* =========================================
+   GENERAL SCREENS
+========================================= */
+
 .screen {
   display: none;
+
   width: 100%;
   height: 100%;
+
   align-items: center;
   justify-content: center;
 }
@@ -29,13 +40,25 @@ body {
   display: flex;
 }
 
-/* ---------- Screen 1: editor panel ---------- */
+
+/* =========================================
+   PRESENT-DAY EDITOR
+========================================= */
+
+#screen-present {
+  background: #14161b;
+}
+
 .editor-panel {
   width: min(640px, 90vw);
-  background: #1B1E25;
-  border: 1px solid #262A33;
+
+  background: #1b1e25;
+
+  border: 1px solid #262a33;
   border-radius: 6px;
+
   overflow: hidden;
+
   display: flex;
   flex-direction: column;
 }
@@ -44,10 +67,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   padding: 10px 16px;
-  border-bottom: 1px solid #262A33;
+
+  border-bottom: 1px solid #262a33;
+
   font-size: 13px;
-  color: #888D99;
+
+  color: #888d99;
 }
 
 .filename {
@@ -66,11 +93,16 @@ body {
 #code-input {
   width: 100%;
   height: 220px;
+
   background: transparent;
+
   border: none;
   outline: none;
+
   resize: none;
-  color: #E7E5E0;
+
+  color: #e7e5e0;
+
   font-family: inherit;
   font-size: 14px;
   line-height: 1.6;
@@ -79,27 +111,481 @@ body {
 .panel-bottombar {
   display: flex;
   justify-content: flex-end;
+
   padding: 12px 16px;
-  border-top: 1px solid #262A33;
+
+  border-top: 1px solid #262a33;
 }
 
 #run-btn {
-  background: #5EEAD4;
-  color: #0C0D10;
+  background: #5eead4;
+
+  color: #0c0d10;
+
   border: none;
   border-radius: 4px;
+
   padding: 8px 20px;
+
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
+
   cursor: pointer;
 }
 
 #run-btn:hover {
-  background: #7FF0DE;
+  background: #7ff0de;
 }
 
-#run-btn:focus-visible {
-  outline: 2px solid #E7E5E0;
-  outline-offset: 2px;
+#run-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+
+/* =========================================
+   CRT TRANSITION
+========================================= */
+
+#crt-transition {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 1000;
+
+  display: none;
+
+  background: #000;
+
+  overflow: hidden;
+}
+
+#crt-transition.active {
+  display: block;
+}
+
+
+/* Static */
+
+#static-layer {
+  position: absolute;
+
+  inset: 0;
+
+  background:
+    repeating-radial-gradient(
+      circle at 20% 30%,
+      #fff 0,
+      #777 1px,
+      #111 2px,
+      #000 3px
+    );
+
+  opacity: 0;
+
+  mix-blend-mode: screen;
+}
+
+
+/* CRT horizontal line */
+
+#crt-line {
+  position: absolute;
+
+  left: 0;
+  right: 0;
+
+  top: 50%;
+
+  height: 3px;
+
+  background: #d8fff2;
+
+  box-shadow:
+    0 0 10px #7fffd4,
+    0 0 30px #7fffd4;
+
+  transform: scaleX(0);
+
+  opacity: 0;
+
+  z-index: 2;
+}
+
+
+/* Boot screen */
+
+#boot-screen {
+  position: absolute;
+
+  inset: 0;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  background: #030806;
+
+  opacity: 0;
+
+  z-index: 3;
+}
+
+#boot-text {
+  width: min(700px, 85vw);
+
+  color: #8cffc1;
+
+  font-family: "Courier New", monospace;
+
+  font-size: clamp(12px, 2vw, 18px);
+
+  line-height: 1.8;
+
+  text-shadow:
+    0 0 5px #55ff99,
+    0 0 12px rgba(80, 255, 150, 0.4);
+
+  white-space: pre-wrap;
+}
+
+
+/* =========================================
+   1947 GAME SCREEN
+========================================= */
+
+.screen-1947 {
+  position: relative;
+
+  background:
+    radial-gradient(
+      ellipse at center,
+      #463b25 0%,
+      #241f15 70%,
+      #110f0a 100%
+    );
+
+  color: #aaffc9;
+
+  overflow: hidden;
+}
+
+
+/* CRT scanlines */
+
+.screen-1947::before {
+  content: "";
+
+  position: absolute;
+
+  inset: 0;
+
+  pointer-events: none;
+
+  z-index: 20;
+
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.025) 0px,
+      rgba(255,255,255,0.025) 1px,
+      rgba(0,0,0,0.12) 2px,
+      rgba(0,0,0,0.12) 4px
+    );
+}
+
+
+/* CRT vignette */
+
+.crt-overlay {
+  position: absolute;
+
+  inset: 0;
+
+  pointer-events: none;
+
+  z-index: 21;
+
+  background:
+    radial-gradient(
+      ellipse at center,
+      transparent 45%,
+      rgba(0,0,0,0.65) 100%
+    );
+}
+
+
+/* =========================================
+   GAME CONTAINER
+========================================= */
+
+.game-container {
+  position: relative;
+
+  width: min(1100px, 94vw);
+  height: min(750px, 92vh);
+
+  display: flex;
+
+  flex-direction: column;
+
+  border: 2px solid rgba(153, 255, 190, 0.35);
+
+  background: rgba(25, 29, 20, 0.8);
+
+  box-shadow:
+    inset 0 0 50px rgba(0,0,0,0.5),
+    0 0 30px rgba(90,255,150,0.08);
+
+  z-index: 10;
+}
+
+
+/* =========================================
+   GAME HEADER
+========================================= */
+
+.game-header {
+  min-height: 72px;
+
+  display: grid;
+
+  grid-template-columns: 1fr auto 1fr;
+
+  align-items: center;
+
+  padding: 12px 20px;
+
+  border-bottom: 1px solid rgba(153,255,190,0.25);
+
+  text-shadow: 0 0 8px rgba(120,255,160,0.6);
+}
+
+.era-label {
+  font-size: 15px;
+
+  letter-spacing: 0.15em;
+}
+
+.date-label {
+  margin-top: 5px;
+
+  font-size: 11px;
+
+  opacity: 0.7;
+}
+
+.rank-display {
+  text-align: center;
+}
+
+.rank-label {
+  display: block;
+
+  font-size: 9px;
+
+  opacity: 0.5;
+
+  letter-spacing: 0.2em;
+}
+
+#rank-name {
+  font-size: 13px;
+
+  margin-top: 5px;
+}
+
+.swat-display {
+  text-align: right;
+}
+
+#swat-count {
+  font-size: 20px;
+}
+
+
+/* =========================================
+   GAME STAGE
+========================================= */
+
+.game-stage {
+  position: relative;
+
+  flex: 1;
+
+  overflow: hidden;
+
+  cursor: crosshair;
+}
+
+#game-canvas {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+}
+
+
+/* =========================================
+   SPAWN BANNER
+========================================= */
+
+.spawn-banner {
+  position: absolute;
+
+  top: 20px;
+
+  left: 50%;
+
+  transform: translateX(-50%);
+
+  max-width: 80%;
+
+  padding: 10px 18px;
+
+  border: 1px solid rgba(150,255,190,0.5);
+
+  background: rgba(10,20,13,0.9);
+
+  color: #b7ffd0;
+
+  font-size: 12px;
+
+  text-align: center;
+
+  letter-spacing: 0.05em;
+
+  text-shadow: 0 0 8px #6aff9a;
+
+  opacity: 0;
+
+  pointer-events: none;
+
+  z-index: 5;
+}
+
+.spawn-banner.show {
+  animation: bannerIn 2.2s ease forwards;
+}
+
+@keyframes bannerIn {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+
+  15% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  80% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+
+/* =========================================
+   GAME MESSAGE
+========================================= */
+
+.game-message {
+  position: absolute;
+
+  inset: 0;
+
+  display: none;
+
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+
+  background: rgba(5,7,5,0.88);
+
+  z-index: 10;
+
+  padding: 30px;
+}
+
+.game-message.visible {
+  display: flex;
+}
+
+#game-message-title {
+  font-size: clamp(20px, 4vw, 40px);
+
+  color: #b7ffd0;
+
+  text-shadow:
+    0 0 10px #5aff91,
+    0 0 25px rgba(80,255,140,0.5);
+}
+
+#game-message-text {
+  max-width: 600px;
+
+  margin-top: 20px;
+
+  color: #8caf98;
+
+  font-size: 13px;
+
+  line-height: 1.8;
+}
+
+
+/* =========================================
+   FOOTER
+========================================= */
+
+.game-footer {
+  min-height: 42px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 20px;
+
+  border-top: 1px solid rgba(153,255,190,0.25);
+
+  font-size: 10px;
+
+  letter-spacing: 0.1em;
+
+  color: rgba(170,255,200,0.6);
+}
+
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media (max-width: 600px) {
+
+  .game-header {
+    grid-template-columns: 1fr 1fr;
+
+    gap: 10px;
+  }
+
+  .rank-display {
+    display: none;
+  }
+
+  .game-footer {
+    font-size: 8px;
+  }
+
 }

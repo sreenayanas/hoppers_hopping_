@@ -6,17 +6,21 @@
   <title>run.py</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
 
   <div id="app">
 
-    <!-- SCREEN 1: the legitimate-looking tool -->
+    <!-- =========================================
+         SCREEN 1 — THE PRESENT
+    ========================================== -->
     <main id="screen-present" class="screen active">
+
       <div class="editor-panel">
 
         <div class="panel-topbar">
           <span class="filename">run.py</span>
-          <span class="moth-icon" id="moth-icon" aria-hidden="true">&#129416;</span>
+          <span class="moth-icon" id="moth-icon" aria-hidden="true">🦋</span>
         </div>
 
         <div class="editor-body">
@@ -33,13 +37,106 @@
         </div>
 
       </div>
+
     </main>
 
-    <!-- SCREEN 2: 1947 game screen — empty for now, game.js will populate it -->
-    <main id="screen-1947" class="screen"></main>
+
+    <!-- =========================================
+         CRT TRANSITION
+    ========================================== -->
+    <div id="crt-transition" aria-hidden="true">
+
+      <div id="static-layer"></div>
+
+      <div id="crt-line"></div>
+
+      <div id="boot-screen">
+
+        <div id="boot-text"></div>
+
+      </div>
+
+    </div>
+
+
+    <!-- =========================================
+         SCREEN 2 — 1947
+    ========================================== -->
+    <main id="screen-1947" class="screen screen-1947">
+
+      <div class="crt-overlay"></div>
+
+      <div class="game-container">
+
+        <header class="game-header">
+
+          <div>
+            <div class="era-label">HARVARD MARK II</div>
+            <div class="date-label">SEPTEMBER 9, 1947</div>
+          </div>
+
+          <div class="rank-display">
+            <span class="rank-label">RANK</span>
+            <span id="rank-name">GROUNDLING</span>
+          </div>
+
+          <div class="swat-display">
+            <span class="rank-label">SWATS</span>
+            <span id="swat-count">0</span>
+          </div>
+
+        </header>
+
+
+        <section class="game-stage">
+
+          <div id="spawn-banner" class="spawn-banner"></div>
+
+          <canvas id="game-canvas"></canvas>
+
+          <div id="game-message" class="game-message">
+            <div id="game-message-title"></div>
+            <div id="game-message-text"></div>
+          </div>
+
+        </section>
+
+
+        <footer class="game-footer">
+
+          <div id="error-category">
+            ERROR: UNKNOWN
+          </div>
+
+          <div>
+            CLICK THE MOTH TO SWAT
+          </div>
+
+        </footer>
+
+      </div>
+
+    </main>
 
   </div>
 
+
+  <!-- =========================================
+       AUDIO
+  ========================================== -->
+
+  <audio id="audio-static" src="assets/audio/static.wav" preload="auto"></audio>
+  <audio id="audio-boot" src="assets/audio/boot-hum.wav" preload="auto"></audio>
+  <audio id="audio-spawn" src="assets/audio/spawn.wav" preload="auto"></audio>
+  <audio id="audio-swing" src="assets/audio/swing.wav" preload="auto"></audio>
+  <audio id="audio-hit" src="assets/audio/hit.wav" preload="auto"></audio>
+  <audio id="audio-loss" src="assets/audio/loss.wav" preload="auto"></audio>
+  <audio id="audio-win" src="assets/audio/win.wav" preload="auto"></audio>
+  <audio id="audio-typewriter" src="assets/audio/typewriter.wav" preload="auto"></audio>
+  <audio id="audio-fanfare" src="assets/audio/fanfare.wav" preload="auto"></audio>
+
+
   <script src="game.js"></script>
+
 </body>
 </html>
