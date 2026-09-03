@@ -1,39 +1,97 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="theme-color"
+    content="#11130f"
+  >
+
   <title>run.py</title>
-  <link rel="stylesheet" href="style.css" />
+
+  <link
+    rel="stylesheet"
+    href="style.css"
+  >
 </head>
 
 <body>
 
   <div id="app">
 
-    <!-- =========================================
-         SCREEN 1 — THE PRESENT
-    ========================================== -->
-    <main id="screen-present" class="screen active">
+    <!-- =====================================================
+         PRESENT-DAY IDE
+         ===================================================== -->
+
+    <main
+      id="screen-present"
+      class="screen active"
+    >
 
       <div class="editor-panel">
 
         <div class="panel-topbar">
-          <span class="filename">run.py</span>
-          <span class="moth-icon" id="moth-icon" aria-hidden="true">🦋</span>
+
+          <div class="window-controls">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+
+          <span class="filename">
+            run.py
+          </span>
+
+          <span
+            class="moth-icon"
+            id="moth-icon"
+            aria-hidden="true"
+          >
+            🦋
+          </span>
+
         </div>
 
+
         <div class="editor-body">
+
+          <div class="line-numbers" id="line-numbers">
+            1
+          </div>
+
           <textarea
             id="code-input"
             spellcheck="false"
             autocomplete="off"
+            autocorrect="off"
             autocapitalize="off"
           >print("hello world")</textarea>
+
         </div>
 
+
         <div class="panel-bottombar">
-          <button id="run-btn">Run</button>
+
+          <div
+            id="editor-status"
+            class="editor-status"
+          >
+            Ready
+          </div>
+
+          <button
+            id="run-btn"
+            type="button"
+          >
+            Run
+          </button>
+
         </div>
 
       </div>
@@ -41,78 +99,315 @@
     </main>
 
 
-    <!-- =========================================
-         CRT TRANSITION
-    ========================================== -->
-    <div id="crt-transition" aria-hidden="true">
+    <!-- =====================================================
+         HAUNTED TRANSITION
+         ===================================================== -->
 
-      <div id="static-layer"></div>
+    <div
+      id="transition"
+      class="transition"
+      aria-hidden="true"
+    >
 
-      <div id="crt-line"></div>
+      <div class="static-layer"></div>
 
-      <div id="boot-screen">
+      <div class="rgb-layer"></div>
 
-        <div id="boot-text"></div>
+      <div class="crt-line"></div>
+
+      <div class="boot-screen">
+
+        <pre
+          id="boot-text"
+          class="boot-text"
+        ></pre>
 
       </div>
 
     </div>
 
 
-    <!-- =========================================
-         SCREEN 2 — 1947
-    ========================================== -->
-    <main id="screen-1947" class="screen screen-1947">
+    <!-- =====================================================
+         1947 GAME
+         ===================================================== -->
 
-      <div class="crt-overlay"></div>
+    <main
+      id="screen-1947"
+      class="screen game-screen"
+    >
 
-      <div class="game-container">
+      <div class="game-shell">
+
+        <!-- GAME HEADER -->
 
         <header class="game-header">
 
-          <div>
-            <div class="era-label">HARVARD MARK II</div>
-            <div class="date-label">SEPTEMBER 9, 1947</div>
+          <div class="machine-heading">
+
+            <div class="game-era">
+              SEPTEMBER 9, 1947
+            </div>
+
+            <div class="game-machine">
+              HARVARD MARK II
+            </div>
+
+            <div class="game-subtitle">
+              RELAY COMPUTATION APPARATUS
+            </div>
+
           </div>
 
-          <div class="rank-display">
-            <span class="rank-label">RANK</span>
-            <span id="rank-name">GROUNDLING</span>
-          </div>
 
-          <div class="swat-display">
-            <span class="rank-label">SWATS</span>
-            <span id="swat-count">0</span>
+          <div class="game-stats">
+
+            <div class="stat">
+              <span class="stat-label">
+                SWATS
+              </span>
+
+              <span
+                id="score"
+                class="stat-value"
+              >
+                0
+              </span>
+            </div>
+
+
+            <div class="stat">
+              <span class="stat-label">
+                MOUTHS OF THE TUBE
+              </span>
+
+              <span
+                id="lives"
+                class="stat-value"
+              >
+                3
+              </span>
+            </div>
+
           </div>
 
         </header>
 
 
-        <section class="game-stage">
+        <!-- MOTH ANNOUNCEMENT -->
 
-          <div id="spawn-banner" class="spawn-banner"></div>
+        <div
+          id="moth-announcement"
+          class="moth-announcement"
+          aria-live="polite"
+        ></div>
 
-          <canvas id="game-canvas"></canvas>
 
-          <div id="game-message" class="game-message">
-            <div id="game-message-title"></div>
-            <div id="game-message-text"></div>
+        <!-- CANVAS -->
+
+        <div
+          id="canvas-wrapper"
+          class="canvas-wrapper"
+        >
+
+          <canvas
+            id="game-canvas"
+          ></canvas>
+
+          <div
+            id="hit-flash"
+            class="hit-flash"
+          ></div>
+
+          <div
+            id="swat-indicator"
+            class="swat-indicator"
+          >
+            ✦
           </div>
 
-        </section>
+        </div>
 
 
-        <footer class="game-footer">
+        <!-- FOOTER -->
 
-          <div id="error-category">
-            ERROR: UNKNOWN
+        <div class="game-footer">
+
+          <div class="game-instructions">
+            CLICK THE WINGED SCOURGE TO SWAT IT
           </div>
 
-          <div>
-            CLICK THE MOTH TO SWAT
+          <button
+            id="logbook-btn"
+            class="small-button"
+            type="button"
+          >
+            LOGBOOK
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- ===================================================
+           LOGBOOK
+           =================================================== -->
+
+      <div
+        id="logbook-overlay"
+        class="modal-overlay hidden"
+      >
+
+        <div class="logbook">
+
+          <div class="logbook-cover">
+
+            <div class="book-emblem">
+              ✦
+            </div>
+
+            <div class="book-title">
+              THE LOGBOOK
+            </div>
+
+            <div class="book-subtitle">
+              OF INSECTUAL AFFLICTIONS
+            </div>
+
+            <button
+              id="close-logbook"
+              class="book-close"
+              type="button"
+            >
+              CLOSE
+            </button>
+
           </div>
 
-        </footer>
+
+          <div class="logbook-page">
+
+            <div
+              id="logbook-page-content"
+              class="logbook-page-content"
+            ></div>
+
+          </div>
+
+
+          <div class="logbook-controls">
+
+            <button
+              id="prev-entry"
+              class="small-button"
+              type="button"
+            >
+              ← PREV
+            </button>
+
+            <span id="logbook-counter">
+              0 / 0
+            </span>
+
+            <button
+              id="next-entry"
+              class="small-button"
+              type="button"
+            >
+              NEXT →
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- ===================================================
+           RANK OVERLAY
+           =================================================== -->
+
+      <div
+        id="rank-overlay"
+        class="modal-overlay hidden"
+      >
+
+        <div class="rank-card">
+
+          <div class="rank-small">
+            BY DECREE OF THE ANCIENT MACHINE
+          </div>
+
+          <div
+            id="rank-title"
+            class="rank-title"
+          ></div>
+
+          <div
+            id="rank-jab"
+            class="rank-jab"
+          ></div>
+
+          <div class="rank-divider">
+            ✦ ✦ ✦
+          </div>
+
+          <button
+            id="rank-dismiss"
+            class="small-button"
+            type="button"
+          >
+            ACCEPT THY GLORIOUS BURDEN
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- ===================================================
+           END GAME
+           =================================================== -->
+
+      <div
+        id="end-overlay"
+        class="modal-overlay hidden"
+      >
+
+        <div class="end-card">
+
+          <div
+            id="end-symbol"
+            class="end-symbol"
+          >
+            ✦
+          </div>
+
+          <div
+            id="end-heading"
+            class="end-heading"
+          ></div>
+
+          <div
+            id="end-text"
+            class="end-text"
+          ></div>
+
+          <div
+            id="end-entry"
+            class="end-entry"
+          ></div>
+
+          <button
+            id="end-dismiss"
+            class="small-button"
+            type="button"
+          >
+            RETURN
+          </button>
+
+        </div>
 
       </div>
 
@@ -121,19 +416,63 @@
   </div>
 
 
-  <!-- =========================================
+  <!-- =======================================================
        AUDIO
-  ========================================== -->
+       ======================================================= -->
 
-  <audio id="audio-static" src="assets/audio/static.wav" preload="auto"></audio>
-  <audio id="audio-boot" src="assets/audio/boot-hum.wav" preload="auto"></audio>
-  <audio id="audio-spawn" src="assets/audio/spawn.wav" preload="auto"></audio>
-  <audio id="audio-swing" src="assets/audio/swing.wav" preload="auto"></audio>
-  <audio id="audio-hit" src="assets/audio/hit.wav" preload="auto"></audio>
-  <audio id="audio-loss" src="assets/audio/loss.wav" preload="auto"></audio>
-  <audio id="audio-win" src="assets/audio/win.wav" preload="auto"></audio>
-  <audio id="audio-typewriter" src="assets/audio/typewriter.wav" preload="auto"></audio>
-  <audio id="audio-fanfare" src="assets/audio/fanfare.wav" preload="auto"></audio>
+  <audio
+    id="audio-static"
+    src="assets/audio/static.wav"
+    preload="auto"
+  ></audio>
+
+  <audio
+    id="audio-boot"
+    src="assets/audio/boot-hum.wav"
+    preload="auto"
+  ></audio>
+
+  <audio
+    id="audio-spawn"
+    src="assets/audio/spawn.wav"
+    preload="auto"
+  ></audio>
+
+  <audio
+    id="audio-swing"
+    src="assets/audio/swing.wav"
+    preload="auto"
+  ></audio>
+
+  <audio
+    id="audio-hit"
+    src="assets/audio/hit.wav"
+    preload="auto"
+  ></audio>
+
+  <audio
+    id="audio-loss"
+    src="assets/audio/loss.wav"
+    preload="auto"
+  ></audio>
+
+  <audio
+    id="audio-win"
+    src="assets/audio/win.wav"
+    preload="auto"
+  ></audio>
+
+  <audio
+    id="audio-typewriter"
+    src="assets/audio/typewriter.wav"
+    preload="auto"
+  ></audio>
+
+  <audio
+    id="audio-fanfare"
+    src="assets/audio/fanfare.wav"
+    preload="auto"
+  ></audio>
 
 
   <script src="game.js"></script>
