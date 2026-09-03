@@ -1,3597 +1,1841 @@
-// =========================================================
-// GRACE HOPPER BUG HUNT
-// COMPLETE FRONTEND GAME ENGINE
-// =========================================================
+// ============================================================
+// GRACE HOPPER'S BUG HUNT
+// Complete frontend game.js
+// ============================================================
 
+// ---------- Backend ----------
+const BACKEND_URL = "http://localhost:5000/run";
 
-// =========================================================
-// CONFIGURATION
-// =========================================================
+// ---------- Elements ----------
+const runBtn = document.getElementById("run-btn");
+const codeInput = document.getElementById("code-input");
+const screenPresent = document.getElementById("screen-present");
+const screen1947 = document.getElementById("screen-1947");
 
-const BACKEND_URL =
-  "http://localhost:5000/run";
-
-const SWATS_TO_WIN = 10;
-
-const STARTING_LIVES = 3;
-
-const STORAGE_KEY =
-  "grace-hopper-bug-hunt-logbook";
-
-const RANK_STORAGE_KEY =
-  "grace-hopper-bug-hunt-rank";
-
-
-// =========================================================
-// DOM REFERENCES
-// =========================================================
-
-const runBtn =
-  document.getElementById("run-btn");
-
-const codeInput =
-  document.getElementById("code-input");
-
-const screenPresent =
-  document.getElementById("screen-present");
-
-const screen1947 =
-  document.getElementById("screen-1947");
-
-const transition =
-  document.getElementById("transition");
-
-const bootText =
-  document.getElementById("boot-text");
-
-const editorStatus =
-  document.getElementById("editor-status");
-
-const lineNumbers =
-  document.getElementById("line-numbers");
-
-const mothAnnouncement =
-  document.getElementById("moth-announcement");
-
-const canvas =
-  document.getElementById("game-canvas");
-
-const canvasWrapper =
-  document.getElementById("canvas-wrapper");
-
-const ctx =
-  canvas.getContext("2d");
-
-const scoreElement =
-  document.getElementById("score");
-
-const livesElement =
-  document.getElementById("lives");
-
-const hitFlash =
-  document.getElementById("hit-flash");
-
-const swatIndicator =
-  document.getElementById("swat-indicator");
-
-const logbookBtn =
-  document.getElementById("logbook-btn");
-
-const logbookOverlay =
-  document.getElementById("logbook-overlay");
-
-const closeLogbook =
-  document.getElementById("close-logbook");
-
-const logbookPageContent =
-  document.getElementById(
-    "logbook-page-content"
-  );
-
-const logbookCounter =
-  document.getElementById(
-    "logbook-counter"
-  );
-
-const previousEntryBtn =
-  document.getElementById(
-    "prev-entry"
-  );
-
-const nextEntryBtn =
-  document.getElementById(
-    "next-entry"
-  );
-
-const rankOverlay =
-  document.getElementById(
-    "rank-overlay"
-  );
-
-const rankTitle =
-  document.getElementById(
-    "rank-title"
-  );
-
-const rankJab =
-  document.getElementById(
-    "rank-jab"
-  );
-
-const rankDismiss =
-  document.getElementById(
-    "rank-dismiss"
-  );
-
-const endOverlay =
-  document.getElementById(
-    "end-overlay"
-  );
-
-const endSymbol =
-  document.getElementById(
-    "end-symbol"
-  );
-
-const endHeading =
-  document.getElementById(
-    "end-heading"
-  );
-
-const endText =
-  document.getElementById(
-    "end-text"
-  );
-
-const endEntry =
-  document.getElementById(
-    "end-entry"
-  );
-
-const endDismiss =
-  document.getElementById(
-    "end-dismiss"
-  );
-
-
-// =========================================================
+// ============================================================
 // AUDIO
-// =========================================================
+// ============================================================
 
 const audio = {
-
-  static:
-    document.getElementById(
-      "audio-static"
-    ),
-
-  boot:
-    document.getElementById(
-      "audio-boot"
-    ),
-
-  spawn:
-    document.getElementById(
-      "audio-spawn"
-    ),
-
-  swing:
-    document.getElementById(
-      "audio-swing"
-    ),
-
-  hit:
-    document.getElementById(
-      "audio-hit"
-    ),
-
-  loss:
-    document.getElementById(
-      "audio-loss"
-    ),
-
-  win:
-    document.getElementById(
-      "audio-win"
-    ),
-
-  typewriter:
-    document.getElementById(
-      "audio-typewriter"
-    ),
-
-  fanfare:
-    document.getElementById(
-      "audio-fanfare"
-    )
-
+  static: document.getElementById("audio-static"),
+  boot: document.getElementById("audio-boot"),
+  spawn: document.getElementById("audio-spawn"),
+  swing: document.getElementById("audio-swing"),
+  hit: document.getElementById("audio-hit"),
+  loss: document.getElementById("audio-loss"),
+  win: document.getElementById("audio-win"),
+  typewriter: document.getElementById("audio-typewriter"),
+  fanfare: document.getElementById("audio-fanfare")
 };
 
+function playSound(name, volume = 1) {
+  const sound = audio[name];
 
-function playSound(
-  name,
-  volume = 1
-) {
-
-  const sound =
-    audio[name];
-
-  if (!sound) {
-    return;
-  }
+  if (!sound) return;
 
   try {
-
     sound.pause();
-
     sound.currentTime = 0;
-
-    sound.volume =
-      Math.max(
-        0,
-        Math.min(
-          1,
-          volume
-        )
-      );
-
-    const promise =
-      sound.play();
-
-    if (promise) {
-
-      promise.catch(
-        () => {}
-      );
-
-    }
-
+    sound.volume = volume;
+    sound.play().catch(() => {});
+  } catch (error) {
+    console.warn("Audio unavailable:", name);
   }
-
-  catch (error) {
-
-    console.warn(
-      "Audio unavailable:",
-      name
-    );
-
-  }
-
 }
 
+// ============================================================
+// GAME STATE
+// ============================================================
 
-// =========================================================
-// UTILITY
-// =========================================================
+let canvas;
+let ctx;
 
-function sleep(ms) {
+let gameRunning = false;
+let gameEnded = false;
 
-  return new Promise(
-    resolve =>
-      setTimeout(
-        resolve,
-        ms
-      )
-  );
+let currentError = "UnknownError";
+let errorCount = 0;
 
-}
+let totalSwats = Number(localStorage.getItem("hopperSwats") || 0);
+let rankIndex = Number(localStorage.getItem("hopperRank") || 0);
 
+let moths = [];
 
-function random(min, max) {
+let mouseX = 0;
+let mouseY = 0;
 
-  return (
-    Math.random() *
-    (max - min) +
-    min
-  );
+let swingTimer = 0;
+let screenShake = 0;
 
-}
+let lastTime = 0;
+let spawnTimer = 0;
 
+let bannerText = "";
+let bannerTimer = 0;
 
-function clamp(
-  value,
-  min,
-  max
-) {
+let messageText = "";
+let messageTimer = 0;
 
-  return Math.max(
-    min,
-    Math.min(
-      max,
-      value
-    )
-  );
+let transitionActive = false;
 
-}
+// ============================================================
+// RANKS
+// ============================================================
 
-
-// =========================================================
-// EDITOR LINE NUMBERS
-// =========================================================
-
-function updateLineNumbers() {
-
-  const lineCount =
-    codeInput.value
-      .split("\n")
-      .length;
-
-  const numbers = [];
-
-  for (
-    let i = 1;
-    i <= lineCount;
-    i++
-  ) {
-
-    numbers.push(i);
-
-  }
-
-  lineNumbers.textContent =
-    numbers.join("\n");
-
-}
-
-
-codeInput.addEventListener(
-  "input",
-  updateLineNumbers
-);
-
-
-codeInput.addEventListener(
-  "scroll",
-  () => {
-
-    lineNumbers.style.transform =
-      `translateY(${-codeInput.scrollTop}px)`;
-
-  }
-);
-
-
-updateLineNumbers();
-
-
-// =========================================================
-// BACKEND CONNECTION
-// =========================================================
-
-async function runCode() {
-
-  const code =
-    codeInput.value;
-
-
-  if (!code.trim()) {
-
-    editorStatus.textContent =
-      "Running...";
-
-  }
-
-  else {
-
-    editorStatus.textContent =
-      "Running...";
-
-  }
-
-
-  runBtn.disabled = true;
-
-  runBtn.textContent =
-    "Running...";
-
-
-  try {
-
-    const response =
-      await fetch(
-        BACKEND_URL,
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          body: JSON.stringify({
-            code
-          })
-        }
-      );
-
-
-    if (!response.ok) {
-
-      throw new Error(
-        `HTTP ${response.status}`
-      );
-
-    }
-
-
-    const data =
-      await response.json();
-
-
-    console.log(
-      "Backend response:",
-      data
-    );
-
-
-    if (
-      data.status ===
-      "error"
-    ) {
-
-      editorStatus.textContent =
-        "Process terminated.";
-
-      handleError(
-        data.error_type ||
-        "UnknownError"
-      );
-
-    }
-
-    else if (
-      data.status ===
-      "clean"
-    ) {
-
-      editorStatus.textContent =
-        "Process completed.";
-
-      handleSuccess();
-
-    }
-
-    else {
-
-      throw new Error(
-        "Unexpected backend response."
-      );
-
-    }
-
-  }
-
-  catch (error) {
-
-    console.error(
-      "Backend unreachable:",
-      error
-    );
-
-    editorStatus.textContent =
-      "Connection failed.";
-
-    alert(
-      "The ancient machine could not be reached.\n\n" +
-      "Make sure the Flask backend is running."
-    );
-
-  }
-
-  finally {
-
-    runBtn.disabled =
-      false;
-
-    runBtn.textContent =
-      "Run";
-
-  }
-
-}
-
-
-runBtn.addEventListener(
-  "click",
-  runCode
-);
-
-
-// =========================================================
-// CLEAN RUN
-// =========================================================
-
-function handleSuccess() {
-
-  console.log(
-    "Code ran clean."
-  );
-
-  // The useless-project joke:
-  // clean code gives the user absolutely nothing.
-
-}
-
-
-// =========================================================
-// ERROR HANDLER
-// =========================================================
-
-function handleError(
-  errorType
-) {
-
-  console.log(
-    "Error detected:",
-    errorType
-  );
-
-
-  startHauntedTransition(
-    errorType
-  );
-
-}
-
-
-// =========================================================
-// HAUNTED TRANSITION
-// =========================================================
-
-let transitionRunning =
-  false;
-
-
-async function startHauntedTransition(
-  errorType
-) {
-
-  if (transitionRunning) {
-    return;
-  }
-
-  transitionRunning = true;
-
-
-  runBtn.disabled =
-    true;
-
-
-  document.body.classList.add(
-    "glitching"
-  );
-
-
-  playSound(
-    "static",
-    0.8
-  );
-
-
-  await sleep(650);
-
-
-  document.body.classList.remove(
-    "glitching"
-  );
-
-
-  transition.classList.add(
-    "active"
-  );
-
-
-  transition.classList.add(
-    "static-active"
-  );
-
-
-  await sleep(500);
-
-
-  transition.classList.remove(
-    "static-active"
-  );
-
-
-  await sleep(250);
-
-
-  transition.classList.add(
-    "crt-active"
-  );
-
-
-  playSound(
-    "boot",
-    0.65
-  );
-
-
-  await sleep(900);
-
-
-  transition.classList.add(
-    "boot-active"
-  );
-
-
-  await typeBootSequence(
-    errorType
-  );
-
-
-  await sleep(800);
-
-
-  transition.classList.remove(
-    "active"
-  );
-
-
-  transition.classList.remove(
-    "crt-active"
-  );
-
-
-  transition.classList.remove(
-    "boot-active"
-  );
-
-
-  screenPresent.classList.remove(
-    "active"
-  );
-
-
-  screen1947.classList.add(
-    "active"
-  );
-
-
-  transitionRunning =
-    false;
-
-
-  startGame(
-    errorType
-  );
-
-}
-
-
-// =========================================================
-// BOOT SEQUENCE
-// =========================================================
-
-async function typeBootSequence(
-  errorType
-) {
-
-  const lines = [
-
-    "SEPTEMBER 9, 1947",
-
-    "HARVARD MARK II",
-
-    "",
-
-    "RELAY NETWORK: ACTIVE",
-
-    "VACUUM TUBES: NOMINAL",
-
-    "ELECTROMAGNETIC MEMORY: ACTIVE",
-
-    "",
-
-    "ANOMALOUS BEHAVIOUR DETECTED.",
-
-    "",
-
-    "INSECTUAL CONTAMINATION:",
-
-    "CONFIRMED.",
-
-    "",
-
-    "ERROR CLASSIFICATION:",
-
-    errorType.toUpperCase(),
-
-    "",
-
-    "ARCHIVE PROTOCOL ENGAGED.",
-
-    "",
-
-    "THE MOTH HATH RETURNED."
-
-  ];
-
-
-  bootText.textContent =
-    "";
-
-
-  playSound(
-    "typewriter",
-    0.35
-  );
-
-
-  for (
-    const line of lines
-  ) {
-
-    await typeBootLine(
-      line
-    );
-
-    await sleep(120);
-
-  }
-
-}
-
-
-async function typeBootLine(
-  text
-) {
-
-  for (
-    let i = 0;
-    i < text.length;
-    i++
-  ) {
-
-    bootText.textContent +=
-      text[i];
-
-    await sleep(19);
-
-  }
-
-
-  bootText.textContent +=
-    "\n";
-
-}
-
-
-// =========================================================
-// MOTH DEFINITIONS
-// =========================================================
-
-const MOTH_TYPES = {
-
-  SyntaxError: {
-
-    name:
-      "Sluggish Syntax-Moth",
-
-    behavior:
-      "sluggish",
-
-    speed:
-      1.0,
-
-    size:
-      18,
-
-    color:
-      "#b7d995"
-
+const ranks = [
+  {
+    name: "Groundling",
+    required: 0
   },
+  {
+    name: "Apprentice Relay-Sweeper",
+    required: 5
+  },
+  {
+    name: "Ensign of the Vacuum Tube",
+    required: 12
+  },
+  {
+    name: "Knight of the Flickering Filament",
+    required: 25
+  },
+  {
+    name: "Rear Admiral, Order of the Swatted Wing",
+    required: 50
+  }
+];
 
+function getRank() {
+  let current = ranks[0];
+
+  for (const rank of ranks) {
+    if (totalSwats >= rank.required) {
+      current = rank;
+    }
+  }
+
+  return current;
+}
+
+// ============================================================
+// MOCKERY
+// ============================================================
+
+const mockery = {
+  SyntaxError: {
+    adjective: "Sluggish",
+    noun: "Syntax-Moth"
+  },
 
   TypeError: {
-
-    name:
-      "Fickle Type-Wraith",
-
-    behavior:
-      "zigzag",
-
-    speed:
-      2.2,
-
-    size:
-      18,
-
-    color:
-      "#b7ff9b"
-
+    adjective: "Fickle",
+    noun: "Type-Wraith"
   },
-
 
   NameError: {
-
-    name:
-      "Vanishing Reference-Sprite",
-
-    behavior:
-      "blink",
-
-    speed:
-      1.8,
-
-    size:
-      17,
-
-    color:
-      "#c7e8a7"
-
+    adjective: "Vanishing",
+    noun: "Reference-Sprite"
   },
-
 
   IndexError: {
-
-    name:
-      "Overreaching Range-Fiend",
-
-    behavior:
-      "growing",
-
-    speed:
-      1.45,
-
-    size:
-      17,
-
-    color:
-      "#e0d39a"
-
+    adjective: "Overreaching",
+    noun: "Range-Fiend"
   },
-
 
   KeyError: {
-
-    name:
-      "Overreaching Range-Fiend",
-
-    behavior:
-      "growing",
-
-    speed:
-      1.45,
-
-    size:
-      17,
-
-    color:
-      "#e0d39a"
-
+    adjective: "Overreaching",
+    noun: "Range-Fiend"
   },
-
 
   ZeroDivisionError: {
-
-    name:
-      "Impossible Division-Imp",
-
-    behavior:
-      "orbit",
-
-    speed:
-      1.8,
-
-    size:
-      18,
-
-    color:
-      "#d5e7a0"
-
+    adjective: "Impossible",
+    noun: "Division-Imp"
   },
-
 
   AttributeError: {
-
-    name:
-      "Nameless Attribute-Ghoul",
-
-    behavior:
-      "spiral",
-
-    speed:
-      1.65,
-
-    size:
-      19,
-
-    color:
-      "#a8d28b"
-
+    adjective: "Nameless",
+    noun: "Attribute-Ghoul"
   },
-
 
   TimeoutError: {
-
-    name:
-      "Endless Loop Revenant",
-
-    behavior:
-      "dash",
-
-    speed:
-      2.8,
-
-    size:
-      21,
-
-    color:
-      "#d6c789"
-
+    adjective: "Relentless",
+    noun: "Clockwork-Phantom"
   },
-
 
   EmptyInputError: {
-
-    name:
-      "Vacant Moth",
-
-    behavior:
-      "sluggish",
-
-    speed:
-      0.8,
-
-    size:
-      18,
-
-    color:
-      "#91a681"
-
+    adjective: "Hollow",
+    noun: "Vacancy-Moth"
   },
 
-
   UnknownError: {
-
-    name:
-      "Unclassified Error-Moth",
-
-    behavior:
-      "zigzag",
-
-    speed:
-      1.5,
-
-    size:
-      19,
-
-    color:
-      "#b7ff9b"
-
+    adjective: "Unknowable",
+    noun: "Eldritch-Moth"
   }
-
 };
 
-
-// =========================================================
-// GAME STATE
-// =========================================================
-
-const game = {
-
-  running:
-    false,
-
-  errorType:
-    "UnknownError",
-
-  score:
-    0,
-
-  lives:
-    STARTING_LIVES,
-
-  moths:
-    [],
-
-  lastSpawn:
-    0,
-
-  spawnInterval:
-    1600,
-
-  difficulty:
-    1,
-
-  animationId:
-    null,
-
-  lastFrame:
-    0,
-
-  endShown:
-    false
-
-};
-
-
-// =========================================================
-// CANVAS RESIZE
-// =========================================================
-
-function resizeCanvas() {
-
-  if (!canvas) {
-    return;
-  }
-
-
-  const rect =
-    canvas.getBoundingClientRect();
-
-
-  const dpr =
-    window.devicePixelRatio ||
-    1;
-
-
-  canvas.width =
-    Math.floor(
-      rect.width * dpr
-    );
-
-
-  canvas.height =
-    Math.floor(
-      rect.height * dpr
-    );
-
-
-  ctx.setTransform(
-    dpr,
-    0,
-    0,
-    dpr,
-    0,
-    0
-  );
-
+function getCreature(errorType) {
+  return mockery[errorType] || mockery.UnknownError;
 }
 
+function randomMockery(errorType) {
+  const creature = getCreature(errorType);
 
-window.addEventListener(
-  "resize",
-  resizeCanvas
-);
+  const templates = [
+    `Hark! The ${creature.adjective} ${creature.noun} hath descended!`,
+    `Beware! The ${creature.adjective} ${creature.noun} doth approach!`,
+    `Lo! A ${creature.adjective} ${creature.noun} vexeth the machine!`,
+    `Attend! The ${creature.noun} demandeth thy attention!`
+  ];
 
+  return templates[Math.floor(Math.random() * templates.length)];
+}
 
-// =========================================================
-// START GAME
-// =========================================================
+function makeLogEntry(errorType) {
+  const creature = getCreature(errorType);
 
-function startGame(
-  errorType
-) {
+  const templates = [
+    `Hark! On this eve did the ${creature.adjective} ${creature.noun} beset the relay, and was struck down in glorious combat. Let it be known the programmer's folly remaineth entirely his own to discover.`,
 
-  game.running =
-    true;
+    `Upon the sacred machinery appeared the ${creature.adjective} ${creature.noun}. By heroic swatting was the creature vanquished. Of the original calamity, this logbook revealeth absolutely naught.`,
 
-  game.errorType =
-    errorType;
+    `Let the record show that a ${creature.adjective} ${creature.noun} hath troubled the apparatus. The beast is no more. The cause of its visitation remaineth a mystery.`,
 
-  game.score =
-    0;
+    `In the year of our machinery, the ${creature.noun} didst appear. Grace Hopper hath prevailed. Whether wisdom hath prevailed likewise is beyond the scope of this logbook.`
+  ];
 
-  game.lives =
-    STARTING_LIVES;
+  return templates[Math.floor(Math.random() * templates.length)];
+}
 
-  game.moths =
-    [];
+// ============================================================
+// LOGBOOK
+// ============================================================
 
-  game.lastSpawn =
-    performance.now();
+function getLogbook() {
+  try {
+    return JSON.parse(localStorage.getItem("hopperLogbook") || "[]");
+  } catch {
+    return [];
+  }
+}
 
-  game.spawnInterval =
-    1500;
+function saveLogEntry(errorType) {
+  const entries = getLogbook();
 
-  game.difficulty =
-    1;
+  entries.push({
+    errorType,
+    text: makeLogEntry(errorType),
+    date: new Date().toLocaleString()
+  });
 
-  game.lastFrame =
-    performance.now();
+  localStorage.setItem("hopperLogbook", JSON.stringify(entries));
+}
 
-  game.endShown =
-    false;
+// ============================================================
+// ERROR HANDLING
+// ============================================================
 
+function handleError(errorType) {
+  currentError = errorType || "UnknownError";
+  errorCount++;
 
-  updateStats();
+  begin1947Transition();
+}
+
+function handleSuccess() {
+  console.log("Code ran clean.");
+}
+
+// ============================================================
+// RUN BUTTON
+// ============================================================
+
+async function runCode() {
+  const code = codeInput.value;
+
+  runBtn.disabled = true;
+  runBtn.textContent = "Running...";
+
+  try {
+    const response = await fetch(BACKEND_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        code
+      })
+    });
+
+    const data = await response.json();
+
+    console.log("Backend response:", data);
+
+    if (data.status === "error" || data.hasError) {
+      handleError(data.error_type || data.errorType);
+    } else {
+      handleSuccess();
+    }
+
+  } catch (err) {
+    console.error("Backend unreachable:", err);
+
+    alert(
+      "The ancient machine cannot be reached.\n\n" +
+      "Make sure Flask is running on localhost:5000."
+    );
+
+  } finally {
+    runBtn.disabled = false;
+    runBtn.textContent = "Run";
+  }
+}
+
+runBtn.addEventListener("click", runCode);
+
+// ============================================================
+// 1947 SCREEN
+// ============================================================
+
+function setupGameScreen() {
+  screen1947.innerHTML = `
+    <div id="game-wrapper">
+
+      <canvas id="game-canvas"></canvas>
+
+      <div id="game-hud">
+        <div class="hud-left">
+          <div>HARVARD MARK II</div>
+          <div id="rank-display">GROUNDLING</div>
+        </div>
+
+        <div class="hud-center">
+          <div id="game-banner"></div>
+        </div>
+
+        <div class="hud-right">
+          <div>SWATS: <span id="swat-count">0</span></div>
+          <div>BUGS: <span id="bug-count">0</span></div>
+        </div>
+      </div>
+
+      <div id="game-message"></div>
+
+      <button id="logbook-button">LOGBOOK</button>
+
+      <div id="logbook-overlay">
+        <div id="logbook-paper">
+          <button id="close-logbook">×</button>
+
+          <h1>THE LOGBOOK</h1>
+          <div id="logbook-content"></div>
+        </div>
+      </div>
+
+      <div id="rank-overlay">
+        <div id="rank-card">
+          <div class="rank-small">PROMOTION BESTOWED</div>
+          <div id="rank-title"></div>
+          <div id="rank-jab"></div>
+        </div>
+      </div>
+
+      <div id="ending-overlay">
+        <div id="ending-card">
+          <div id="ending-text"></div>
+          <button id="ending-button">RETURN TO THE MACHINE</button>
+        </div>
+      </div>
+
+    </div>
+  `;
+
+  canvas = document.getElementById("game-canvas");
+  ctx = canvas.getContext("2d");
+
+  addGameStyles();
 
   resizeCanvas();
 
+  window.addEventListener("resize", resizeCanvas);
 
-  announceMoth(
-    errorType
-  );
+  canvas.addEventListener("mousemove", handleMouseMove);
+  canvas.addEventListener("click", handleCanvasClick);
 
+  document
+    .getElementById("logbook-button")
+    .addEventListener("click", openLogbook);
 
-  spawnMoth();
+  document
+    .getElementById("close-logbook")
+    .addEventListener("click", closeLogbook);
 
+  document
+    .getElementById("ending-button")
+    .addEventListener("click", returnToPresent);
 
-  cancelAnimationFrame(
-    game.animationId
-  );
-
-
-  game.animationId =
-    requestAnimationFrame(
-      gameLoop
-    );
-
+  updateHUD();
 }
 
+setupGameScreen();
 
-// =========================================================
-// GAME LOOP
-// =========================================================
+// ============================================================
+// GAME CSS
+// ============================================================
 
-function gameLoop(
-  timestamp
-) {
+function addGameStyles() {
+  if (document.getElementById("game-generated-style")) return;
 
-  if (!game.running) {
-    return;
-  }
+  const style = document.createElement("style");
+  style.id = "game-generated-style";
 
+  style.textContent = `
+    #game-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at center, #4b4028 0%, #211d15 75%);
+      color: #d8c48b;
+    }
 
-  const width =
-    canvas.clientWidth;
+    #game-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+    }
 
-  const height =
-    canvas.clientHeight;
+    #game-wrapper::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          rgba(0,0,0,.08) 0px,
+          rgba(0,0,0,.08) 1px,
+          transparent 2px,
+          transparent 4px
+        );
+      box-shadow: inset 0 0 100px rgba(0,0,0,.7);
+      z-index: 10;
+    }
 
+    #game-hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 18px 24px;
+      display: flex;
+      justify-content: space-between;
+      font-family: "Courier New", monospace;
+      color: #b7d69a;
+      text-shadow: 0 0 8px #86a968;
+      font-size: 13px;
+      letter-spacing: 2px;
+      z-index: 20;
+      pointer-events: none;
+    }
 
-  const delta =
-    Math.min(
-      50,
-      timestamp -
-      game.lastFrame
+    .hud-center {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      width: 50%;
+    }
+
+    #game-banner {
+      color: #e6cf91;
+      font-size: 14px;
+    }
+
+    .hud-right {
+      text-align: right;
+    }
+
+    #logbook-button {
+      position: absolute;
+      right: 24px;
+      bottom: 20px;
+      z-index: 30;
+      background: transparent;
+      border: 1px solid #a8925c;
+      color: #d8c48b;
+      padding: 8px 14px;
+      font-family: "Courier New", monospace;
+      cursor: pointer;
+      letter-spacing: 1px;
+    }
+
+    #logbook-button:hover {
+      background: #d8c48b;
+      color: #211d15;
+    }
+
+    #game-message {
+      position: absolute;
+      left: 50%;
+      top: 52%;
+      transform: translate(-50%, -50%);
+      color: #e6cf91;
+      font-family: Georgia, serif;
+      font-size: clamp(18px, 3vw, 32px);
+      text-align: center;
+      text-shadow: 0 0 12px #000;
+      z-index: 25;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .2s;
+      width: 80%;
+    }
+
+    #logbook-overlay,
+    #rank-overlay,
+    #ending-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(5,5,4,.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    #logbook-paper {
+      position: relative;
+      width: min(700px, 90vw);
+      max-height: 80vh;
+      overflow-y: auto;
+      padding: 42px;
+      background: #d8c48b;
+      color: #302818;
+      box-shadow: 0 0 50px #000;
+      font-family: Georgia, serif;
+    }
+
+    #logbook-paper h1 {
+      text-align: center;
+      margin-bottom: 25px;
+      letter-spacing: 4px;
+    }
+
+    #close-logbook {
+      position: absolute;
+      right: 15px;
+      top: 10px;
+      border: none;
+      background: transparent;
+      font-size: 30px;
+      cursor: pointer;
+    }
+
+    .log-entry {
+      border-top: 1px solid #75653d;
+      padding: 18px 0;
+      line-height: 1.6;
+    }
+
+    .log-date {
+      font-size: 12px;
+      opacity: .65;
+      margin-bottom: 8px;
+    }
+
+    #rank-card,
+    #ending-card {
+      width: min(700px, 90vw);
+      text-align: center;
+      padding: 50px 30px;
+      border: 2px solid #a8925c;
+      background: #19160f;
+      color: #d8c48b;
+      box-shadow: 0 0 50px #000;
+      font-family: Georgia, serif;
+    }
+
+    .rank-small {
+      font-family: "Courier New", monospace;
+      letter-spacing: 4px;
+      margin-bottom: 20px;
+      color: #8fad74;
+    }
+
+    #rank-title {
+      font-size: clamp(25px, 5vw, 48px);
+      margin-bottom: 25px;
+    }
+
+    #rank-jab {
+      font-size: 18px;
+      line-height: 1.6;
+    }
+
+    #ending-text {
+      font-size: clamp(22px, 4vw, 38px);
+      line-height: 1.5;
+      margin-bottom: 35px;
+    }
+
+    #ending-button {
+      background: #d8c48b;
+      border: none;
+      padding: 12px 22px;
+      cursor: pointer;
+      font-family: "Courier New", monospace;
+      font-weight: bold;
+    }
+
+    @media(max-width:600px) {
+      #game-hud {
+        padding: 10px;
+        font-size: 9px;
+      }
+
+      .hud-center {
+        display: none;
+      }
+
+      #logbook-paper {
+        padding: 25px;
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+}
+
+// ============================================================
+// CANVAS
+// ============================================================
+
+function resizeCanvas() {
+  if (!canvas) return;
+
+  const dpr = window.devicePixelRatio || 1;
+
+  canvas.width = window.innerWidth * dpr;
+  canvas.height = window.innerHeight * dpr;
+
+  canvas.style.width = window.innerWidth + "px";
+  canvas.style.height = window.innerHeight + "px";
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+// ============================================================
+// TRANSITION
+// ============================================================
+
+function begin1947Transition() {
+  if (transitionActive) return;
+
+  transitionActive = true;
+
+  screenPresent.classList.remove("active");
+  screen1947.classList.add("active");
+
+  playSound("static", 0.8);
+
+  createTransitionOverlay();
+
+  setTimeout(() => {
+    playSound("boot", 0.7);
+  }, 700);
+
+  setTimeout(() => {
+    startGame();
+  }, 1600);
+}
+
+function createTransitionOverlay() {
+  const overlay = document.createElement("div");
+
+  overlay.id = "transition-overlay";
+
+  overlay.innerHTML = `
+    <div id="transition-noise"></div>
+    <div id="transition-line"></div>
+    <div id="boot-text">
+      SEPTEMBER 9, 1947<br>
+      HARVARD MARK II<br>
+      <br>
+      THE ANCIENT MACHINE STIRS...
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const style = document.createElement("style");
+
+  style.textContent = `
+    #transition-overlay {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      animation: transitionFlash 1.6s forwards;
+    }
+
+    #transition-noise {
+      position: absolute;
+      inset: 0;
+      opacity: .9;
+      background:
+        repeating-radial-gradient(
+          circle at center,
+          #fff 0px,
+          #222 1px,
+          #000 2px,
+          #888 3px
+        );
+      animation: noise .08s infinite;
+    }
+
+    #transition-line {
+      position: absolute;
+      width: 100%;
+      height: 3px;
+      background: #c8ff9b;
+      box-shadow: 0 0 20px #9fdf76;
+      animation: crt 1.1s .35s forwards;
+    }
+
+    #boot-text {
+      position: relative;
+      z-index: 2;
+      color: #b7d69a;
+      font-family: "Courier New", monospace;
+      text-align: center;
+      line-height: 1.8;
+      letter-spacing: 2px;
+      opacity: 0;
+      animation: bootText .7s .7s forwards;
+      text-shadow: 0 0 10px #8aad6b;
+    }
+
+    @keyframes noise {
+      0% { transform: translate(0); }
+      25% { transform: translate(4px,-3px); }
+      50% { transform: translate(-3px,3px); }
+      75% { transform: translate(3px,2px); }
+      100% { transform: translate(-2px,-2px); }
+    }
+
+    @keyframes crt {
+      0% {
+        height: 3px;
+        transform: scaleY(1);
+      }
+
+      100% {
+        height: 100%;
+        transform: scaleY(1);
+        opacity: 0;
+      }
+    }
+
+    @keyframes bootText {
+      to { opacity: 1; }
+    }
+
+    @keyframes transitionFlash {
+      0% { filter: brightness(4); }
+      10% { filter: brightness(1); }
+      100% { opacity: 1; }
+    }
+  `;
+
+  document.head.appendChild(style);
+
+  setTimeout(() => {
+    overlay.remove();
+    style.remove();
+  }, 1700);
+}
+
+// ============================================================
+// START GAME
+// ============================================================
+
+function startGame() {
+  transitionActive = false;
+  gameRunning = true;
+  gameEnded = false;
+
+  moths = [];
+  spawnTimer = 0;
+
+  bannerText = randomMockery(currentError);
+  bannerTimer = 2500;
+
+  messageText = "";
+  messageTimer = 0;
+
+  updateHUD();
+
+  playSound("spawn", 0.5);
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ============================================================
+// INPUT
+// ============================================================
+
+function handleMouseMove(event) {
+  mouseX = event.clientX;
+  mouseY = event.clientY;
+}
+
+function handleCanvasClick(event) {
+  if (!gameRunning || gameEnded) return;
+
+  mouseX = event.clientX;
+  mouseY = event.clientY;
+
+  swingTimer = 160;
+
+  playSound("swing", 0.6);
+
+  let hitSomething = false;
+
+  for (let i = moths.length - 1; i >= 0; i--) {
+    const moth = moths[i];
+
+    const distance = Math.hypot(
+      mouseX - moth.x,
+      mouseY - moth.y
     );
 
+    if (distance < moth.radius + 45) {
+      moths.splice(i, 1);
 
-  game.lastFrame =
-    timestamp;
+      totalSwats++;
 
+      localStorage.setItem(
+        "hopperSwats",
+        totalSwats
+      );
 
-  ctx.clearRect(
-    0,
-    0,
-    width,
-    height
-  );
+      playSound("hit", 0.8);
 
+      screenShake = 90;
 
-  drawBackground(
-    width,
-    height,
-    timestamp
-  );
+      hitSomething = true;
 
+      checkRank();
+
+      break;
+    }
+  }
+
+  if (hitSomething) {
+    updateHUD();
+  }
 
   if (
-    timestamp -
-    game.lastSpawn >=
-    game.spawnInterval
+    errorCount >= 1 &&
+    totalSwats > 0 &&
+    totalSwats % 5 === 0
   ) {
-
-    spawnMoth();
-
-    game.lastSpawn =
-      timestamp;
-
+    // occasional encouragement
+    messageText = "A most righteous swatting!";
+    messageTimer = 900;
   }
-
-
-  updateMoths(
-    delta,
-    width,
-    height
-  );
-
-
-  drawMoths();
-
-
-  game.animationId =
-    requestAnimationFrame(
-      gameLoop
-    );
-
 }
 
-
-// =========================================================
-// BACKGROUND
-// =========================================================
-
-function drawBackground(
-  width,
-  height,
-  timestamp
-) {
-
-  ctx.fillStyle =
-    "#0b1109";
-
-  ctx.fillRect(
-    0,
-    0,
-    width,
-    height
-  );
-
-
-  const gradient =
-    ctx.createRadialGradient(
-      width / 2,
-      height / 2,
-      10,
-      width / 2,
-      height / 2,
-      Math.max(
-        width,
-        height
-      ) * 0.7
-    );
-
-
-  gradient.addColorStop(
-    0,
-    "rgba(120,170,90,0.13)"
-  );
-
-
-  gradient.addColorStop(
-    0.45,
-    "rgba(50,80,40,0.05)"
-  );
-
-
-  gradient.addColorStop(
-    1,
-    "rgba(0,0,0,0)"
-  );
-
-
-  ctx.fillStyle =
-    gradient;
-
-  ctx.fillRect(
-    0,
-    0,
-    width,
-    height
-  );
-
-
-  // CRT scanlines
-
-  ctx.fillStyle =
-    "rgba(170,255,140,0.025)";
-
-
-  for (
-    let y = 0;
-    y < height;
-    y += 4
-  ) {
-
-    ctx.fillRect(
-      0,
-      y,
-      width,
-      1
-    );
-
-  }
-
-
-  // Slowly moving phosphor noise
-
-  ctx.fillStyle =
-    "rgba(190,255,150,0.012)";
-
-
-  const offset =
-    Math.floor(
-      timestamp / 80
-    ) % 5;
-
-
-  for (
-    let y = offset;
-    y < height;
-    y += 17
-  ) {
-
-    ctx.fillRect(
-      0,
-      y,
-      width,
-      1
-    );
-
-  }
-
-}
-
-
-// =========================================================
-// SPAWN MOTH
-// =========================================================
+// ============================================================
+// MOTH SPAWNING
+// ============================================================
 
 function spawnMoth() {
+  const creature = getCreature(currentError);
 
-  if (!game.running) {
-    return;
-  }
-
-
-  const definition =
-    MOTH_TYPES[
-      game.errorType
-    ] ||
-    MOTH_TYPES.UnknownError;
-
-
-  const width =
-    canvas.clientWidth;
-
-  const height =
-    canvas.clientHeight;
-
-
-  const side =
-    Math.floor(
-      Math.random() * 4
-    );
-
+  const margin = 70;
 
   let x;
   let y;
 
+  const side = Math.floor(Math.random() * 4);
 
   if (side === 0) {
-
-    x =
-      random(0, width);
-
-    y =
-      -50;
-
+    x = margin;
+    y = Math.random() * innerHeight;
+  } else if (side === 1) {
+    x = innerWidth - margin;
+    y = Math.random() * innerHeight;
+  } else if (side === 2) {
+    x = Math.random() * innerWidth;
+    y = margin + 50;
+  } else {
+    x = Math.random() * innerWidth;
+    y = innerHeight - margin;
   }
-
-  else if (side === 1) {
-
-    x =
-      width + 50;
-
-    y =
-      random(0, height);
-
-  }
-
-  else if (side === 2) {
-
-    x =
-      random(0, width);
-
-    y =
-      height + 50;
-
-  }
-
-  else {
-
-    x =
-      -50;
-
-    y =
-      random(0, height);
-
-  }
-
-
-  const targetX =
-    width / 2;
-
-  const targetY =
-    height / 2;
-
-
-  const angle =
-    Math.atan2(
-      targetY - y,
-      targetX - x
-    );
-
-
-  const speed =
-    definition.speed *
-    game.difficulty;
-
 
   const moth = {
-
     x,
-
     y,
 
-    vx:
-      Math.cos(angle) *
-      speed,
+    vx: (Math.random() - .5) * 2,
+    vy: (Math.random() - .5) * 2,
 
-    vy:
-      Math.sin(angle) *
-      speed,
+    radius: 18 + Math.random() * 8,
 
-    size:
-      definition.size,
+    age: 0,
 
-    baseSize:
-      definition.size,
+    phase: Math.random() * Math.PI * 2,
 
-    color:
-      definition.color,
+    type: currentError,
 
-    behavior:
-      definition.behavior,
+    color: "#d8c48b",
 
-    age:
-      0,
-
-    phase:
-      random(
-        0,
-        Math.PI * 2
-      ),
-
-    angle:
-      angle,
-
-    orbitRadius:
-      random(20, 80),
-
-    blinkVisible:
-      true
-
+    creature: creature
   };
 
+  moths.push(moth);
 
-  game.moths.push(
-    moth
-  );
+  playSound("spawn", 0.25);
 
-
-  playSound(
-    "spawn",
-    0.3
-  );
-
-
-  announceMoth(
-    game.errorType
-  );
-
+  bannerText = randomMockery(currentError);
+  bannerTimer = 1800;
 }
 
+// ============================================================
+// UPDATE MOTH
+// ============================================================
 
-// =========================================================
-// UPDATE MOTHS
-// =========================================================
+function updateMoth(moth, dt) {
+  moth.age += dt;
 
-function updateMoths(
-  delta,
-  width,
-  height
-) {
+  const t = moth.age / 1000;
 
-  const frame =
-    delta / 16.67;
+  switch (moth.type) {
 
+    case "SyntaxError":
+      // Slow straight-line
+      moth.x += moth.vx * dt * .05;
+      moth.y += moth.vy * dt * .05;
+      break;
 
-  for (
-    let i =
-      game.moths.length - 1;
-
-    i >= 0;
-
-    i--
-  ) {
-
-    const moth =
-      game.moths[i];
-
-
-    moth.age +=
-      frame;
-
-
-    // -----------------------------------------------------
-    // SLUGGISH
-    // -----------------------------------------------------
-
-    if (
-      moth.behavior ===
-      "sluggish"
-    ) {
-
-      moth.x +=
-        moth.vx *
-        0.65 *
-        frame;
-
+    case "TypeError":
+      // Erratic zig-zag
+      moth.x += moth.vx * dt * .12;
       moth.y +=
-        moth.vy *
-        0.65 *
-        frame;
+        Math.sin(t * 8 + moth.phase) *
+        dt *
+        .15;
+      break;
 
-    }
+    case "NameError":
+      // Blink/teleport
+      moth.x += moth.vx * dt * .06;
+      moth.y += moth.vy * dt * .06;
 
-
-    // -----------------------------------------------------
-    // ZIGZAG
-    // -----------------------------------------------------
-
-    else if (
-      moth.behavior ===
-      "zigzag"
-    ) {
-
-      const wave =
-        Math.sin(
-          moth.age * 0.11 +
-          moth.phase
-        );
-
-
-      moth.x +=
-        (
-          moth.vx +
-          -moth.vy *
-          wave *
-          0.12
-        ) *
-        frame;
-
-
-      moth.y +=
-        (
-          moth.vy +
-          moth.vx *
-          wave *
-          0.12
-        ) *
-        frame;
-
-    }
-
-
-    // -----------------------------------------------------
-    // BLINK / TELEPORT
-    // -----------------------------------------------------
-
-    else if (
-      moth.behavior ===
-      "blink"
-    ) {
-
-      moth.x +=
-        moth.vx *
-        frame;
-
-      moth.y +=
-        moth.vy *
-        frame;
-
-
-      moth.blinkVisible =
-        Math.floor(
-          moth.age / 9
-        ) % 2 === 0;
-
-
-      if (
-        moth.age % 85 <
-        frame
-      ) {
-
-        moth.x +=
-          random(
-            -100,
-            100
-          );
-
-        moth.y +=
-          random(
-            -100,
-            100
-          );
-
+      if (Math.random() < .003) {
+        moth.x = Math.random() * innerWidth;
+        moth.y = 80 + Math.random() * (innerHeight - 150);
       }
 
-    }
+      break;
 
+    case "IndexError":
+    case "KeyError":
+      // Grows larger
+      moth.x += moth.vx * dt * .08;
+      moth.y += moth.vy * dt * .08;
 
-    // -----------------------------------------------------
-    // GROWING
-    // -----------------------------------------------------
+      moth.radius += dt * .002;
 
-    else if (
-      moth.behavior ===
-      "growing"
-    ) {
-
-      moth.x +=
-        moth.vx *
-        frame;
-
-      moth.y +=
-        moth.vy *
-        frame;
-
-
-      moth.size =
-        moth.baseSize +
-        Math.min(
-          24,
-          moth.age *
-          0.045
-        );
-
-    }
-
-
-    // -----------------------------------------------------
-    // ORBIT
-    // -----------------------------------------------------
-
-    else if (
-      moth.behavior ===
-      "orbit"
-    ) {
-
-      moth.x +=
-        moth.vx *
-        frame;
-
-      moth.y +=
-        moth.vy *
-        frame;
-
-
-      const orbitalForce =
-        Math.sin(
-          moth.age *
-          0.08
-        );
-
-
-      moth.x +=
-        -moth.vy *
-        orbitalForce *
-        0.09 *
-        frame;
-
-
-      moth.y +=
-        moth.vx *
-        orbitalForce *
-        0.09 *
-        frame;
-
-    }
-
-
-    // -----------------------------------------------------
-    // SPIRAL
-    // -----------------------------------------------------
-
-    else if (
-      moth.behavior ===
-      "spiral"
-    ) {
-
-      moth.x +=
-        moth.vx *
-        frame;
-
-      moth.y +=
-        moth.vy *
-        frame;
-
-
-      const spiral =
-        Math.sin(
-          moth.age *
-          0.06
-        ) *
-        (
-          1 +
-          moth.age *
-          0.008
-        );
-
-
-      moth.x +=
-        spiral *
-        frame;
-
-
-      moth.y +=
-        Math.cos(
-          moth.age *
-          0.06
-        ) *
-        2 *
-        frame;
-
-    }
-
-
-    // -----------------------------------------------------
-    // DASH
-    // -----------------------------------------------------
-
-    else if (
-      moth.behavior ===
-      "dash"
-    ) {
-
-      const multiplier =
-        1 +
-        Math.sin(
-          moth.age *
-          0.045
-        ) *
-        0.8;
-
-
-      moth.x +=
-        moth.vx *
-        multiplier *
-        frame;
-
-      moth.y +=
-        moth.vy *
-        frame;
-
-    }
-
-
-    // -----------------------------------------------------
-    // OUT OF BOUNDS
-    // -----------------------------------------------------
-
-    const margin =
-      75;
-
-
-    if (
-      moth.x <
-        -margin ||
-
-      moth.x >
-        width +
-        margin ||
-
-      moth.y <
-        -margin ||
-
-      moth.y >
-        height +
-        margin
-    ) {
-
-      game.moths.splice(
-        i,
-        1
-      );
-
-
-      game.lives--;
-
-      updateStats();
-
-
-      if (
-        game.lives <= 0
-      ) {
-
-        loseGame();
-
-        return;
-
+      if (moth.radius > 50) {
+        moth.radius = 50;
       }
 
-    }
+      break;
 
+    case "ZeroDivisionError":
+      // Circular orbit
+      moth.x += Math.cos(t * 3 + moth.phase) * dt * .12;
+      moth.y += Math.sin(t * 3 + moth.phase) * dt * .12;
+      break;
+
+    case "AttributeError":
+      // Ghostly drifting
+      moth.x += Math.sin(t * 4) * dt * .12;
+      moth.y += Math.cos(t * 3) * dt * .1;
+      break;
+
+    case "TimeoutError":
+      // Slowly accelerates
+      moth.vx *= 1.001;
+      moth.vy *= 1.001;
+
+      moth.x += moth.vx * dt * .1;
+      moth.y += moth.vy * dt * .1;
+      break;
+
+    default:
+      moth.x += moth.vx * dt * .08;
+      moth.y += moth.vy * dt * .08;
   }
 
-}
-
-
-// =========================================================
-// DRAW MOTH
-// =========================================================
-
-function drawMoths() {
-
-  for (
-    const moth of game.moths
-  ) {
-
-    if (
-      moth.behavior ===
-      "blink" &&
-      !moth.blinkVisible
-    ) {
-
-      continue;
-
-    }
-
-
-    drawMoth(
-      moth
-    );
-
+  // Bounce from screen
+  if (moth.x < 30 || moth.x > innerWidth - 30) {
+    moth.vx *= -1;
   }
 
+  if (moth.y < 80 || moth.y > innerHeight - 30) {
+    moth.vy *= -1;
+  }
 }
 
+// ============================================================
+// DRAW BACKGROUND
+// ============================================================
 
-function drawMoth(
-  moth
-) {
+function drawBackground() {
+  const gradient = ctx.createRadialGradient(
+    innerWidth / 2,
+    innerHeight / 2,
+    50,
+    innerWidth / 2,
+    innerHeight / 2,
+    innerWidth
+  );
 
-  const x =
-    moth.x;
+  gradient.addColorStop(0, "#51472d");
+  gradient.addColorStop(.6, "#302a1d");
+  gradient.addColorStop(1, "#11100c");
 
-  const y =
-    moth.y;
+  ctx.fillStyle = gradient;
 
-  const s =
-    moth.size;
+  ctx.fillRect(
+    0,
+    0,
+    innerWidth,
+    innerHeight
+  );
 
+  // Machine table
+  ctx.fillStyle = "#17150f";
+
+  ctx.fillRect(
+    0,
+    innerHeight * .78,
+    innerWidth,
+    innerHeight * .22
+  );
+
+  // Mark II machine
+  drawMachine();
+}
+
+// ============================================================
+// DRAW MACHINE
+// ============================================================
+
+function drawMachine() {
+  const x = innerWidth / 2;
+  const y = innerHeight * .70;
 
   ctx.save();
 
+  ctx.fillStyle = "#262318";
 
-  ctx.translate(
-    x,
-    y
+  ctx.fillRect(
+    x - 180,
+    y - 120,
+    360,
+    110
   );
 
+  ctx.strokeStyle = "#766b4a";
+  ctx.lineWidth = 2;
 
-  const flutter =
-    Math.sin(
-      moth.age *
-      0.28
+  ctx.strokeRect(
+    x - 180,
+    y - 120,
+    360,
+    110
+  );
+
+  // tubes
+  for (let i = 0; i < 9; i++) {
+    const tx = x - 145 + i * 36;
+
+    ctx.fillStyle = i % 2
+      ? "#718d55"
+      : "#9b7544";
+
+    ctx.fillRect(
+      tx,
+      y - 100,
+      12,
+      45
     );
 
+    ctx.beginPath();
+    ctx.arc(
+      tx + 6,
+      y - 100,
+      6,
+      0,
+      Math.PI * 2
+    );
 
-  const wingScale =
-    0.75 +
-    Math.abs(flutter) *
-    0.25;
+    ctx.fill();
+  }
 
+  ctx.fillStyle = "#d8c48b";
+  ctx.font = "12px Courier New";
+  ctx.textAlign = "center";
 
-  // Glow
-
-  ctx.shadowColor =
-    moth.color;
-
-  ctx.shadowBlur =
-    14;
-
-
-  // Wing color
-
-  ctx.fillStyle =
-    moth.color;
-
-
-  // Left wing
-
-  ctx.save();
-
-  ctx.rotate(
-    -0.25 +
-    flutter *
-    0.08
+  ctx.fillText(
+    "HARVARD MARK II",
+    x,
+    y - 130
   );
-
-
-  ctx.beginPath();
-
-  ctx.ellipse(
-    -s * 0.52,
-    -s * 0.08,
-    s * 0.65,
-    s * 0.34 *
-      wingScale,
-    -0.35,
-    0,
-    Math.PI * 2
-  );
-
-  ctx.fill();
 
   ctx.restore();
-
-
-  // Right wing
-
-  ctx.save();
-
-  ctx.rotate(
-    0.25 -
-    flutter *
-    0.08
-  );
-
-
-  ctx.beginPath();
-
-  ctx.ellipse(
-    s * 0.52,
-    -s * 0.08,
-    s * 0.65,
-    s * 0.34 *
-      wingScale,
-    0.35,
-    0,
-    Math.PI * 2
-  );
-
-  ctx.fill();
-
-  ctx.restore();
-
-
-  // Body
-
-  ctx.fillStyle =
-    "#d8e8b4";
-
-
-  ctx.beginPath();
-
-  ctx.ellipse(
-    0,
-    0,
-    s * 0.17,
-    s * 0.66,
-    0,
-    0,
-    Math.PI * 2
-  );
-
-  ctx.fill();
-
-
-  // Head
-
-  ctx.beginPath();
-
-  ctx.arc(
-    0,
-    -s * 0.54,
-    s * 0.18,
-    0,
-    Math.PI * 2
-  );
-
-  ctx.fill();
-
-
-  // Antennae
-
-  ctx.strokeStyle =
-    moth.color;
-
-  ctx.lineWidth =
-    1;
-
-
-  ctx.beginPath();
-
-  ctx.moveTo(
-    -2,
-    -s * 0.62
-  );
-
-  ctx.quadraticCurveTo(
-    -s * 0.35,
-    -s * 0.9,
-    -s * 0.48,
-    -s
-  );
-
-
-  ctx.moveTo(
-    2,
-    -s * 0.62
-  );
-
-  ctx.quadraticCurveTo(
-    s * 0.35,
-    -s * 0.9,
-    s * 0.48,
-    -s
-  );
-
-  ctx.stroke();
-
-
-  // Tiny relay-like body detail
-
-  ctx.fillStyle =
-    "#172013";
-
-
-  ctx.fillRect(
-    -1,
-    -s * 0.2,
-    2,
-    s * 0.28
-  );
-
-
-  ctx.restore();
-
 }
 
+// ============================================================
+// DRAW GRACE HOPPER
+// ============================================================
 
-// =========================================================
-// PLAYER — GRACE HOPPER AVATAR
-// =========================================================
-
-function drawGraceHopper(
-  x,
-  y
-) {
+function drawGrace() {
+  const x = innerWidth / 2;
+  const y = innerHeight * .86;
 
   ctx.save();
 
-  ctx.translate(
+  // Ground shadow
+  ctx.fillStyle = "rgba(0,0,0,.5)";
+
+  ctx.beginPath();
+
+  ctx.ellipse(
     x,
-    y
-  );
-
-
-  // Halo / targeting circle
-
-  ctx.strokeStyle =
-    "rgba(210,230,160,0.2)";
-
-  ctx.lineWidth =
-    1;
-
-  ctx.beginPath();
-
-  ctx.arc(
+    y + 10,
+    85,
+    15,
     0,
-    0,
-    27,
-    0,
-    Math.PI * 2
-  );
-
-  ctx.stroke();
-
-
-  // Body
-
-  ctx.fillStyle =
-    "#35402c";
-
-
-  ctx.fillRect(
-    -8,
-    5,
-    16,
-    20
-  );
-
-
-  // Head
-
-  ctx.fillStyle =
-    "#d1bd98";
-
-
-  ctx.beginPath();
-
-  ctx.arc(
-    0,
-    -8,
-    10,
     0,
     Math.PI * 2
   );
 
   ctx.fill();
 
+  // Body / jacket
+  ctx.fillStyle = "#354332";
+
+  ctx.beginPath();
+
+  ctx.moveTo(x - 45, y - 95);
+  ctx.lineTo(x + 45, y - 95);
+  ctx.lineTo(x + 60, y);
+  ctx.lineTo(x - 60, y);
+  ctx.closePath();
+
+  ctx.fill();
+
+  // White blouse
+  ctx.fillStyle = "#d9d0b5";
+
+  ctx.beginPath();
+
+  ctx.moveTo(x - 15, y - 90);
+  ctx.lineTo(x + 15, y - 90);
+  ctx.lineTo(x + 25, y - 35);
+  ctx.lineTo(x - 25, y - 35);
+  ctx.closePath();
+
+  ctx.fill();
+
+  // Neck
+  ctx.fillStyle = "#c49573";
+
+  ctx.fillRect(
+    x - 10,
+    y - 112,
+    20,
+    22
+  );
+
+  // Head
+  ctx.beginPath();
+
+  ctx.arc(
+    x,
+    y - 130,
+    29,
+    0,
+    Math.PI * 2
+  );
+
+  ctx.fill();
 
   // Hair
-
-  ctx.fillStyle =
-    "#77705e";
-
+  ctx.fillStyle = "#30271e";
 
   ctx.beginPath();
 
   ctx.arc(
-    0,
-    -11,
-    10,
+    x,
+    y - 140,
+    31,
     Math.PI,
     Math.PI * 2
   );
 
   ctx.fill();
 
+  ctx.fillRect(
+    x - 30,
+    y - 140,
+    10,
+    25
+  );
+
+  ctx.fillRect(
+    x + 20,
+    y - 140,
+    10,
+    25
+  );
 
   // Glasses
-
-  ctx.strokeStyle =
-    "#1d211a";
-
-  ctx.lineWidth =
-    1;
-
+  ctx.strokeStyle = "#1d1b18";
+  ctx.lineWidth = 2;
 
   ctx.strokeRect(
-    -8,
-    -10,
-    6,
-    5
+    x - 23,
+    y - 137,
+    19,
+    12
   );
-
 
   ctx.strokeRect(
-    2,
-    -10,
-    6,
-    5
+    x + 4,
+    y - 137,
+    19,
+    12
   );
-
 
   ctx.beginPath();
 
-  ctx.moveTo(
-    -2,
-    -8
+  ctx.moveTo(x - 4, y - 131);
+  ctx.lineTo(x + 4, y - 131);
+
+  ctx.stroke();
+
+  // Legs
+  ctx.fillStyle = "#292822";
+
+  ctx.fillRect(
+    x - 32,
+    y,
+    25,
+    35
   );
 
-  ctx.lineTo(
-    2,
-    -8
+  ctx.fillRect(
+    x + 7,
+    y,
+    25,
+    35
+  );
+
+  // Shoes
+  ctx.fillStyle = "#151412";
+
+  ctx.fillRect(
+    x - 38,
+    y + 30,
+    34,
+    10
+  );
+
+  ctx.fillRect(
+    x + 5,
+    y + 30,
+    34,
+    10
+  );
+
+  // Arm + flyswatter
+  drawSwatter(x, y);
+
+  // Name plate
+  ctx.fillStyle = "#d8c48b";
+  ctx.font = "bold 13px Courier New";
+  ctx.textAlign = "center";
+
+  ctx.fillText(
+    "GRACE HOPPER",
+    x,
+    y + 60
+  );
+
+  ctx.restore();
+}
+
+// ============================================================
+// SWATTER
+// ============================================================
+
+function drawSwatter(x, y) {
+  const swinging = swingTimer > 0;
+
+  const angle = swinging
+    ? -0.8
+    : -0.25;
+
+  ctx.save();
+
+  ctx.translate(
+    x + 30,
+    y - 65
+  );
+
+  ctx.rotate(angle);
+
+  // Arm
+  ctx.strokeStyle = "#c49573";
+  ctx.lineWidth = 13;
+  ctx.lineCap = "round";
+
+  ctx.beginPath();
+
+  ctx.moveTo(0, 0);
+  ctx.lineTo(45, -20);
+
+  ctx.stroke();
+
+  // Handle
+  ctx.strokeStyle = "#8b6a42";
+  ctx.lineWidth = 7;
+
+  ctx.beginPath();
+
+  ctx.moveTo(35, -20);
+  ctx.lineTo(105, -65);
+
+  ctx.stroke();
+
+  // Swatter head
+  ctx.strokeStyle = "#c8b47c";
+  ctx.lineWidth = 4;
+
+  ctx.strokeRect(
+    90,
+    -85,
+    42,
+    30
+  );
+
+  // holes
+  ctx.strokeStyle = "#766747";
+  ctx.lineWidth = 1;
+
+  for (let a = 0; a < 4; a++) {
+    for (let b = 0; b < 3; b++) {
+      ctx.beginPath();
+
+      ctx.arc(
+        100 + a * 9,
+        -78 + b * 8,
+        2,
+        0,
+        Math.PI * 2
+      );
+
+      ctx.stroke();
+    }
+  }
+
+  ctx.restore();
+}
+
+// ============================================================
+// DRAW MOTH
+// ============================================================
+
+function drawMoth(moth) {
+  ctx.save();
+
+  ctx.translate(moth.x, moth.y);
+
+  const flap =
+    Math.sin(moth.age * .02) * .4;
+
+  ctx.rotate(
+    Math.atan2(moth.vy, moth.vx)
+  );
+
+  // glow
+  ctx.shadowColor = "#d8c48b";
+  ctx.shadowBlur = 12;
+
+  // left wing
+  ctx.fillStyle = "#9f8a55";
+
+  ctx.beginPath();
+
+  ctx.ellipse(
+    -moth.radius * .55,
+    0,
+    moth.radius,
+    moth.radius * (.6 + flap),
+    -.4,
+    0,
+    Math.PI * 2
+  );
+
+  ctx.fill();
+
+  // right wing
+  ctx.beginPath();
+
+  ctx.ellipse(
+    moth.radius * .55,
+    0,
+    moth.radius,
+    moth.radius * (.6 - flap),
+    .4,
+    0,
+    Math.PI * 2
+  );
+
+  ctx.fill();
+
+  // body
+  ctx.fillStyle = "#252015";
+
+  ctx.beginPath();
+
+  ctx.ellipse(
+    0,
+    0,
+    moth.radius * .25,
+    moth.radius * .8,
+    0,
+    0,
+    Math.PI * 2
+  );
+
+  ctx.fill();
+
+  // antenna
+  ctx.strokeStyle = "#d8c48b";
+  ctx.lineWidth = 1;
+
+  ctx.beginPath();
+
+  ctx.moveTo(-3, -moth.radius * .5);
+  ctx.quadraticCurveTo(
+    -12,
+    -moth.radius,
+    -18,
+    -moth.radius * 1.2
+  );
+
+  ctx.moveTo(3, -moth.radius * .5);
+  ctx.quadraticCurveTo(
+    12,
+    -moth.radius,
+    18,
+    -moth.radius * 1.2
   );
 
   ctx.stroke();
 
+  ctx.restore();
+}
 
-  // Arms / swatter stance
+// ============================================================
+// GAME LOOP
+// ============================================================
 
-  ctx.strokeStyle =
-    "#d1bd98";
+function gameLoop(timestamp) {
+  if (!gameRunning) return;
 
-  ctx.lineWidth =
-    4;
-
-  ctx.lineCap =
-    "round";
-
-
-  ctx.beginPath();
-
-  ctx.moveTo(
-    -6,
-    9
+  const dt = Math.min(
+    timestamp - lastTime || 16,
+    40
   );
 
-  ctx.lineTo(
-    -20,
-    0
-  );
+  lastTime = timestamp;
 
-  ctx.moveTo(
-    6,
-    9
-  );
+  if (!gameEnded) {
+    updateGame(dt);
+    drawGame();
+  }
 
-  ctx.lineTo(
-    20,
-    -1
-  );
+  requestAnimationFrame(gameLoop);
+}
 
-  ctx.stroke();
+function updateGame(dt) {
+  // Swing timer
+  if (swingTimer > 0) {
+    swingTimer -= dt;
+  }
 
+  // Screen shake
+  if (screenShake > 0) {
+    screenShake -= dt;
+  }
 
-  // Swatter
+  // Banner
+  if (bannerTimer > 0) {
+    bannerTimer -= dt;
+  }
 
-  ctx.strokeStyle =
-    "#9c8b65";
+  // Message
+  if (messageTimer > 0) {
+    messageTimer -= dt;
+  }
 
-  ctx.lineWidth =
-    2;
+  // Spawn
+  spawnTimer -= dt;
 
+  if (spawnTimer <= 0) {
+    spawnMoth();
 
-  ctx.beginPath();
+    // More errors = faster spawning
+    const difficulty =
+      Math.min(errorCount * 70, 500);
 
-  ctx.moveTo(
-    17,
-    -3
-  );
+    spawnTimer =
+      Math.max(500, 1500 - difficulty);
+  }
 
-  ctx.lineTo(
-    31,
-    -17
-  );
+  for (const moth of moths) {
+    updateMoth(moth, dt);
+  }
 
-  ctx.stroke();
+  // Win condition
+  if (
+    moths.length === 0 &&
+    totalSwats > 0 &&
+    totalSwats % 10 === 0
+  ) {
+    // Don't automatically trigger repeatedly.
+    if (!gameEnded && Math.random() < .002) {
+      endGame(true);
+    }
+  }
 
+  updateHUD();
+}
 
-  ctx.strokeStyle =
-    "#c7bb91";
+// ============================================================
+// DRAW GAME
+// ============================================================
 
-  ctx.lineWidth =
-    2;
+function drawGame() {
+  ctx.save();
 
+  if (screenShake > 0) {
+    const amount = 5;
 
-  ctx.strokeRect(
-    27,
-    -22,
-    9,
-    7
-  );
+    ctx.translate(
+      (Math.random() - .5) * amount,
+      (Math.random() - .5) * amount
+    );
+  }
 
+  drawBackground();
+
+  for (const moth of moths) {
+    drawMoth(moth);
+  }
+
+  drawGrace();
 
   ctx.restore();
 
-}
+  if (bannerTimer > 0) {
+    const banner =
+      document.getElementById("game-banner");
 
-
-// =========================================================
-// CLICK HANDLING
-// =========================================================
-
-canvas.addEventListener(
-  "click",
-  handleCanvasClick
-);
-
-
-function handleCanvasClick(
-  event
-) {
-
-  if (!game.running) {
-    return;
-  }
-
-
-  const rect =
-    canvas.getBoundingClientRect();
-
-
-  const x =
-    event.clientX -
-    rect.left;
-
-  const y =
-    event.clientY -
-    rect.top;
-
-
-  showSwatIndicator(
-    x,
-    y
-  );
-
-
-  playSound(
-    "swing",
-    0.5
-  );
-
-
-  let hit =
-    false;
-
-
-  for (
-    let i =
-      game.moths.length - 1;
-
-    i >= 0;
-
-    i--
-  ) {
-
-    const moth =
-      game.moths[i];
-
-
-    if (
-      moth.behavior ===
-        "blink" &&
-      !moth.blinkVisible
-    ) {
-
-      continue;
-
+    if (banner) {
+      banner.textContent = bannerText;
     }
-
-
-    const dx =
-      x -
-      moth.x;
-
-    const dy =
-      y -
-      moth.y;
-
-
-    const distance =
-      Math.sqrt(
-        dx * dx +
-        dy * dy
-      );
-
-
-    if (
-      distance <
-      moth.size *
-      1.65
-    ) {
-
-      game.moths.splice(
-        i,
-        1
-      );
-
-
-      registerHit();
-
-      hit =
-        true;
-
-      break;
-
-    }
-
   }
 
+  const message =
+    document.getElementById("game-message");
 
-  if (!hit) {
+  if (message) {
+    message.textContent = messageText;
 
-    // Grace swings heroically
-    // at absolutely nothing.
+    message.style.opacity =
+      messageTimer > 0 ? "1" : "0";
+  }
+}
 
+// ============================================================
+// HUD
+// ============================================================
+
+function updateHUD() {
+  const swatCount =
+    document.getElementById("swat-count");
+
+  const bugCount =
+    document.getElementById("bug-count");
+
+  const rankDisplay =
+    document.getElementById("rank-display");
+
+  if (swatCount) {
+    swatCount.textContent = totalSwats;
   }
 
-}
-
-
-// =========================================================
-// SWAT INDICATOR
-// =========================================================
-
-function showSwatIndicator(
-  x,
-  y
-) {
-
-  swatIndicator.style.left =
-    `${x}px`;
-
-  swatIndicator.style.top =
-    `${y}px`;
-
-
-  swatIndicator.classList.remove(
-    "active"
-  );
-
-
-  void swatIndicator.offsetWidth;
-
-
-  swatIndicator.classList.add(
-    "active"
-  );
-
-}
-
-
-// =========================================================
-// REGISTER HIT
-// =========================================================
-
-function registerHit() {
-
-  game.score++;
-
-
-  playSound(
-    "hit",
-    0.75
-  );
-
-
-  hitFlash.classList.remove(
-    "active"
-  );
-
-
-  void hitFlash.offsetWidth;
-
-
-  hitFlash.classList.add(
-    "active"
-  );
-
-
-  screen1947.classList.remove(
-    "screen-shake"
-  );
-
-
-  void screen1947.offsetWidth;
-
-
-  screen1947.classList.add(
-    "screen-shake"
-  );
-
-
-  // Difficulty
-
-  game.difficulty =
-    1 +
-    game.score *
-    0.08;
-
-
-  game.spawnInterval =
-    Math.max(
-      650,
-      1500 -
-      game.score *
-      75
-    );
-
-
-  updateStats();
-
-
-  if (
-    game.score >=
-    SWATS_TO_WIN
-  ) {
-
-    winGame();
-
+  if (bugCount) {
+    bugCount.textContent = moths.length;
   }
 
-}
-
-
-// =========================================================
-// STATS
-// =========================================================
-
-function updateStats() {
-
-  scoreElement.textContent =
-    game.score;
-
-  livesElement.textContent =
-    game.lives;
-
-}
-
-
-// =========================================================
-// ANNOUNCEMENT
-// =========================================================
-
-function announceMoth(
-  errorType
-) {
-
-  const definition =
-    MOTH_TYPES[
-      errorType
-    ] ||
-    MOTH_TYPES.UnknownError;
-
-
-  mothAnnouncement.style.opacity =
-    "0";
-
-
-  setTimeout(
-    () => {
-
-      mothAnnouncement.textContent =
-        `Beware! The ${definition.name} doth descend!`;
-
-      mothAnnouncement.style.opacity =
-        "1";
-
-    },
-    60
-  );
-
-}
-
-
-// =========================================================
-// MOCKERY GENERATOR
-// Shared system used by:
-// - spawn banners
-// - logbook
-// - rank-up jabs
-// =========================================================
-
-const MOCKERY = {
-
-  openers: [
-
-    "Hark!",
-    "Attend!",
-    "Lo!",
-    "Mark well!",
-    "Behold!",
-    "Let the record show!",
-    "Hearken, thou operator!"
-
-  ],
-
-
-  adjectives: [
-
-    "foolish",
-    "hapless",
-    "ill-starred",
-    "wayward",
-    "misguided",
-    "overconfident",
-    "woefully curious"
-
-  ],
-
-
-  nouns: [
-
-    "programmer",
-    "keeper of the relays",
-    "tender of the tubes",
-    "scribe of the machine",
-    "wanderer of the syntax",
-    "summoner of errors"
-
-  ],
-
-
-  contexts: [
-
-    "the ancient apparatus",
-    "the sacred relay",
-    "the trembling vacuum tubes",
-    "the electromagnetic kingdom",
-    "the most unreasonable computer",
-    "this cursed computation"
-
-  ]
-
-};
-
-
-function choose(
-  array
-) {
-
-  return array[
-    Math.floor(
-      Math.random() *
-      array.length
-    )
-  ];
-
-}
-
-
-function generateMockery(
-  errorType,
-  style = "logbook"
-) {
-
-  const definition =
-    MOTH_TYPES[
-      errorType
-    ] ||
-    MOTH_TYPES.UnknownError;
-
-
-  const opener =
-    choose(
-      MOCKERY.openers
-    );
-
-  const adjective =
-    choose(
-      MOCKERY.adjectives
-    );
-
-  const noun =
-    choose(
-      MOCKERY.nouns
-    );
-
-  const context =
-    choose(
-      MOCKERY.contexts
-    );
-
-
-  if (
-    style ===
-    "spawn"
-  ) {
-
-    return (
-      `${opener} The ${definition.name} ` +
-      `doth descend upon ${context}!`
-    );
-
+  if (rankDisplay) {
+    rankDisplay.textContent =
+      getRank().name.toUpperCase();
   }
-
-
-  if (
-    style ===
-    "rank"
-  ) {
-
-    return (
-      `${opener} ${adjective} ${noun}, ` +
-      `thy swatting prowess hath now ` +
-      `exceeded what ${context} reasonably deserved.`
-    );
-
-  }
-
-
-  const templates = [
-
-    `${opener} On this eve did the ` +
-    `${definition.name} beset ${context}, ` +
-    `and was struck down in glorious combat. ` +
-    `Let it be known that the programmer's ` +
-    `folly remaineth entirely his own to discover.`,
-
-    `${opener} The ${definition.name} hath fallen. ` +
-    `The ${adjective} ${noun} hath prevailed. ` +
-    `Yet concerning the original ${errorType}, ` +
-    `this logbook offereth precisely no assistance.`,
-
-    `${opener} A ${definition.name} arose from ` +
-    `the ${errorType} and challenged the relay. ` +
-    `The beast is vanquished. ` +
-    `The cause of the calamity remaineth gloriously concealed.`,
-
-    `${opener} Upon ${context} there occurred ` +
-    `a most inconvenient ${errorType}. ` +
-    `The insect hath been punished for it, ` +
-    `though whether the programmer hath learned ` +
-    `anything is doubtful.`
-
-  ];
-
-
-  return choose(
-    templates
-  );
-
 }
 
+// ============================================================
+// RANK CHECK
+// ============================================================
 
-// =========================================================
-// PERSISTENT LOGBOOK
-// =========================================================
-
-function loadLogbook() {
-
-  try {
-
-    const saved =
-      localStorage.getItem(
-        STORAGE_KEY
-      );
-
-
-    if (!saved) {
-      return [];
-    }
-
-
-    const parsed =
-      JSON.parse(
-        saved
-      );
-
-
-    return Array.isArray(
-      parsed
-    )
-      ? parsed
-      : [];
-
-  }
-
-  catch (error) {
-
-    console.warn(
-      "Could not load logbook:",
-      error
+function checkRank() {
+  const newRankIndex =
+    ranks.findIndex(
+      rank => rank.name === getRank().name
     );
 
-    return [];
-
-  }
-
-}
-
-
-function saveLogbook(
-  entries
-) {
-
-  try {
+  if (newRankIndex > rankIndex) {
+    rankIndex = newRankIndex;
 
     localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(
-        entries
-      )
+      "hopperRank",
+      rankIndex
     );
 
+    showRankUp(ranks[rankIndex]);
   }
-
-  catch (error) {
-
-    console.warn(
-      "Could not save logbook:",
-      error
-    );
-
-  }
-
 }
 
+function showRankUp(rank) {
+  playSound("fanfare", 0.8);
 
-function addLogbookEntry(
-  errorType
-) {
+  const overlay =
+    document.getElementById("rank-overlay");
 
-  const entries =
-    loadLogbook();
+  const title =
+    document.getElementById("rank-title");
 
+  const jab =
+    document.getElementById("rank-jab");
 
-  const entry = {
+  if (!overlay) return;
 
-    errorType,
+  title.textContent = rank.name;
 
-    text:
-      generateMockery(
-        errorType,
-        "logbook"
-      ),
+  jab.textContent =
+    "Thou hast achieved distinction. " +
+    "Whether thou hast achieved understanding remaineth doubtful.";
 
-    date:
-      new Date()
-        .toLocaleString(),
+  overlay.style.display = "flex";
 
-    swats:
-      game.score
-
-  };
-
-
-  entries.push(
-    entry
-  );
-
-
-  saveLogbook(
-    entries
-  );
-
-
-  return entry;
-
+  setTimeout(() => {
+    overlay.style.display = "none";
+  }, 3000);
 }
 
-
-// =========================================================
+// ============================================================
 // LOGBOOK UI
-// =========================================================
-
-let logbookIndex =
-  0;
-
+// ============================================================
 
 function openLogbook() {
+  const overlay =
+    document.getElementById("logbook-overlay");
 
-  const entries =
-    loadLogbook();
+  const content =
+    document.getElementById("logbook-content");
 
+  if (!overlay || !content) return;
 
-  logbookIndex =
-    Math.max(
-      0,
-      entries.length - 1
-    );
+  const entries = getLogbook();
 
-
-  renderLogbook();
-
-
-  logbookOverlay.classList.remove(
-    "hidden"
-  );
-
-}
-
-
-function closeLogbookPanel() {
-
-  logbookOverlay.classList.add(
-    "hidden"
-  );
-
-}
-
-
-function renderLogbook() {
-
-  const entries =
-    loadLogbook();
-
-
-  if (
-    entries.length === 0
-  ) {
-
-    logbookPageContent.innerHTML = `
-
-      <div class="logbook-empty">
-
-        The pages remaineth empty.
-
-        <br><br>
-
-        No moth hath yet been
-        ceremonially defeated.
-
-      </div>
-
+  if (entries.length === 0) {
+    content.innerHTML = `
+      <p>
+        The logbook remaineth empty.
+        Commit more bugs to posterity.
+      </p>
     `;
+  } else {
+    content.innerHTML = entries
+      .slice()
+      .reverse()
+      .map(entry => `
+        <div class="log-entry">
+          <div class="log-date">
+            ${escapeHTML(entry.date)}
+          </div>
 
-
-    logbookCounter.textContent =
-      "0 / 0";
-
-
-    return;
-
+          <div>
+            ${escapeHTML(entry.text)}
+          </div>
+        </div>
+      `)
+      .join("");
   }
 
-
-  logbookIndex =
-    clamp(
-      logbookIndex,
-      0,
-      entries.length - 1
-    );
-
-
-  const entry =
-    entries[
-      logbookIndex
-    ];
-
-
-  logbookPageContent.innerHTML = `
-
-    <article class="logbook-entry">
-
-      <div class="entry-number">
-        ENTRY ${logbookIndex + 1}
-      </div>
-
-      <div class="entry-error">
-        AFFLICTION: ${escapeHTML(
-          entry.errorType
-        )}
-      </div>
-
-      <div>
-        ${escapeHTML(
-          entry.text
-        )}
-      </div>
-
-      <div class="entry-date">
-        RECORDED: ${escapeHTML(
-          entry.date
-        )}
-      </div>
-
-    </article>
-
-  `;
-
-
-  logbookCounter.textContent =
-    `${logbookIndex + 1} / ${entries.length}`;
-
+  overlay.style.display = "flex";
 }
 
+function closeLogbook() {
+  const overlay =
+    document.getElementById("logbook-overlay");
 
-function escapeHTML(
-  value
-) {
-
-  const div =
-    document.createElement(
-      "div"
-    );
-
-
-  div.textContent =
-    String(value);
-
-
-  return div.innerHTML;
-
+  if (overlay) {
+    overlay.style.display = "none";
+  }
 }
 
-
-previousEntryBtn.addEventListener(
-  "click",
-  () => {
-
-    const entries =
-      loadLogbook();
-
-
-    if (
-      entries.length === 0
-    ) {
-      return;
-    }
-
-
-    logbookIndex--;
-
-    if (
-      logbookIndex < 0
-    ) {
-
-      logbookIndex =
-        entries.length - 1;
-
-    }
-
-
-    renderLogbook();
-
-  }
-);
-
-
-nextEntryBtn.addEventListener(
-  "click",
-  () => {
-
-    const entries =
-      loadLogbook();
-
-
-    if (
-      entries.length === 0
-    ) {
-      return;
-    }
-
-
-    logbookIndex++;
-
-    if (
-      logbookIndex >=
-      entries.length
-    ) {
-
-      logbookIndex = 0;
-
-    }
-
-
-    renderLogbook();
-
-  }
-);
-
-
-logbookBtn.addEventListener(
-  "click",
-  openLogbook
-);
-
-
-closeLogbook.addEventListener(
-  "click",
-  closeLogbookPanel
-);
-
-
-logbookOverlay.addEventListener(
-  "click",
-  event => {
-
-    if (
-      event.target ===
-      logbookOverlay
-    ) {
-
-      closeLogbookPanel();
-
-    }
-
-  }
-);
-
-
-// =========================================================
-// RANK SYSTEM
-// =========================================================
-
-const RANKS = [
-
-  {
-    threshold: 0,
-
-    title:
-      "Groundling",
-
-    jab:
-      "Thou hast entered the machine. " +
-      "This alone is not an achievement."
-  },
-
-
-  {
-    threshold: 10,
-
-    title:
-      "Apprentice Relay-Sweeper",
-
-    jab:
-      "Thy swatter hand showeth promise, " +
-      "though thy programming hand remaineth suspect."
-  },
-
-
-  {
-    threshold: 25,
-
-    title:
-      "Ensign of the Vacuum Tube",
-
-    jab:
-      "The tubes acknowledge thy service. " +
-      "They do not, however, trust thy code."
-  },
-
-
-  {
-    threshold: 50,
-
-    title:
-      "Knight of the Flickering Filament",
-
-    jab:
-      "Rise, noble knight! Thou hast conquered " +
-      "many moths and learned absolutely nothing " +
-      "about debugging."
-  },
-
-
-  {
-    threshold: 100,
-
-    title:
-      "Rear Admiral, Order of the Swatted Wing",
-
-    jab:
-      "The ancient machine bows before thee. " +
-      "Somewhere, a compiler remaineth disappointed."
-  }
-
-];
-
-
-function getCurrentRank(
-  totalSwats
-) {
-
-  let current =
-    RANKS[0];
-
-
-  for (
-    const rank of RANKS
-  ) {
-
-    if (
-      totalSwats >=
-      rank.threshold
-    ) {
-
-      current =
-        rank;
-
-    }
-
-  }
-
-
-  return current;
-
+function escapeHTML(text) {
+  return String(text)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
+// ============================================================
+// WIN / LOSS
+// ============================================================
 
-function loadRank() {
+function endGame(won) {
+  if (gameEnded) return;
 
-  try {
+  gameEnded = true;
+  gameRunning = false;
 
-    return Number(
-      localStorage.getItem(
-        RANK_STORAGE_KEY
-      ) || 0
+  if (won) {
+    playSound("win", 0.9);
+
+    saveLogEntry(currentError);
+
+    showEnding(
+      `Hark! On this eve did the ${getCreature(currentError).adjective} ${getCreature(currentError).noun} beset the relay, and was struck down in glorious combat. Let it be known the programmer's folly remaineth entirely his own to discover.`,
+      "win"
     );
 
+  } else {
+    playSound("loss", 0.9);
+
+    showEnding(
+      "LET THE LOGBOOK SHOW:<br><br>THOU HAST BEEN BESTED BY A MOTH",
+      "loss"
+    );
   }
-
-  catch {
-
-    return 0;
-
-  }
-
 }
 
+function showEnding(text, type) {
+  const overlay =
+    document.getElementById("ending-overlay");
 
-function saveRank(
-  threshold
-) {
+  const endingText =
+    document.getElementById("ending-text");
 
-  try {
+  if (!overlay) return;
 
-    localStorage.setItem(
-      RANK_STORAGE_KEY,
-      String(threshold)
-    );
+  endingText.innerHTML = text;
 
-  }
+  overlay.style.display = "flex";
 
-  catch {
+  const button =
+    document.getElementById("ending-button");
 
-    // Ignore storage failure.
-
-  }
-
+  button.textContent =
+    type === "win"
+      ? "RETURN TO THE MACHINE"
+      : "ACCEPT THY DEFEAT";
 }
 
-
-function getTotalSwats() {
-
-  const entries =
-    loadLogbook();
-
-
-  return entries.reduce(
-    (
-      total,
-      entry
-    ) => {
-
-      return (
-        total +
-        Number(
-          entry.swats || 0
-        )
-      );
-
-    },
-    0
-  );
-
-}
-
-
-// =========================================================
-// RANK-UP CHECK
-// =========================================================
-
-function checkRankUp() {
-
-  const entries =
-    loadLogbook();
-
-
-  const totalSwats =
-    entries.reduce(
-      (
-        total,
-        entry
-      ) => {
-
-        return (
-          total +
-          Number(
-            entry.swats || 0
-          )
-        );
-
-      },
-      0
-    );
-
-
-  const currentRank =
-    getCurrentRank(
-      totalSwats
-    );
-
-
-  const savedThreshold =
-    loadRank();
-
-
-  if (
-    currentRank.threshold >
-    savedThreshold
-  ) {
-
-    saveRank(
-      currentRank.threshold
-    );
-
-
-    showRankUp(
-      currentRank
-    );
-
-  }
-
-}
-
-
-function showRankUp(
-  rank
-) {
-
-  rankTitle.textContent =
-    rank.title;
-
-
-  rankJab.textContent =
-    generateMockery(
-      game.errorType,
-      "rank"
-    ) +
-    " " +
-    rank.jab;
-
-
-  rankOverlay.classList.remove(
-    "hidden"
-  );
-
-
-  playSound(
-    "fanfare",
-    0.8
-  );
-
-}
-
-
-rankDismiss.addEventListener(
-  "click",
-  () => {
-
-    rankOverlay.classList.add(
-      "hidden"
-    );
-
-  }
-);
-
-
-// =========================================================
-// WIN
-// =========================================================
-
-async function winGame() {
-
-  if (
-    !game.running ||
-    game.endShown
-  ) {
-
-    return;
-
-  }
-
-
-  game.endShown =
-    true;
-
-  game.running =
-    false;
-
-
-  cancelAnimationFrame(
-    game.animationId
-  );
-
-
-  playSound(
-    "win",
-    0.85
-  );
-
-
-  const entry =
-    addLogbookEntry(
-      game.errorType
-    );
-
-
-  await sleep(550);
-
-
-  endSymbol.textContent =
-    "✦";
-
-
-  endHeading.textContent =
-    "THOU HAST PREVAILED";
-
-
-  endText.innerHTML =
-    "The moth hath been vanquished." +
-    "<br><br>" +
-    "Yet the cause of thy original folly " +
-    "remaineth entirely thy concern.";
-
-
-  endEntry.textContent =
-    entry.text;
-
-
-  endOverlay.classList.remove(
-    "hidden"
-  );
-
-
-  checkRankUp();
-
-}
-
-
-// =========================================================
-// LOSS
-// =========================================================
-
-async function loseGame() {
-
-  if (
-    !game.running ||
-    game.endShown
-  ) {
-
-    return;
-
-  }
-
-
-  game.endShown =
-    true;
-
-  game.running =
-    false;
-
-
-  cancelAnimationFrame(
-    game.animationId
-  );
-
-
-  playSound(
-    "loss",
-    0.9
-  );
-
-
-  await sleep(550);
-
-
-  endSymbol.textContent =
-    "☠";
-
-
-  endHeading.textContent =
-    "THOU HAST BEEN BESTED";
-
-
-  endText.innerHTML =
-    "LET THE LOGBOOK SHOW:" +
-    "<br><br>" +
-    "THOU HAST BEEN BESTED " +
-    "BY A MOTH.";
-
-
-  endEntry.textContent =
-    "No useful information shall be " +
-    "provided concerning the original " +
-    "error. Such knowledge would be " +
-    "entirely contrary to the purpose " +
-    "of this machine.";
-
-
-  endOverlay.classList.remove(
-    "hidden"
-  );
-
-}
-
-
-// =========================================================
-// END GAME DISMISS
-// =========================================================
-
-endDismiss.addEventListener(
-  "click",
-  () => {
-
-    endOverlay.classList.add(
-      "hidden"
-    );
-
-
-    rankOverlay.classList.add(
-      "hidden"
-    );
-
-
-    returnToPresent();
-
-  }
-);
-
-
-// =========================================================
+// ============================================================
 // RETURN TO PRESENT
-// =========================================================
+// ============================================================
 
 function returnToPresent() {
+  gameRunning = false;
+  gameEnded = false;
+  transitionActive = false;
 
-  game.running =
-    false;
+  moths = [];
 
-  game.endShown =
-    false;
+  const overlay =
+    document.getElementById("ending-overlay");
 
-  game.moths =
-    [];
+  if (overlay) {
+    overlay.style.display = "none";
+  }
 
+  screen1947.classList.remove("active");
+  screenPresent.classList.add("active");
 
-  cancelAnimationFrame(
-    game.animationId
-  );
-
-
-  screen1947.classList.remove(
-    "active"
-  );
-
-
-  screenPresent.classList.add(
-    "active"
-  );
-
-
-  editorStatus.textContent =
-    "Ready";
-
-
-  runBtn.disabled =
-    false;
-
-  runBtn.textContent =
-    "Run";
-
-
-  mothAnnouncement.textContent =
-    "";
-
-
-  updateStats();
-
+  updateHUD();
 }
 
+// ============================================================
+// KEYBOARD SHORTCUT
+// ============================================================
 
-// =========================================================
-// ESCAPE KEY
-// =========================================================
-
-document.addEventListener(
-  "keydown",
-  event => {
-
-    if (
-      event.key ===
-      "Escape"
-    ) {
-
-      if (
-        !logbookOverlay.classList.contains(
-          "hidden"
-        )
-      ) {
-
-        closeLogbookPanel();
-
-      }
-
-    }
-
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape") {
+    closeLogbook();
   }
-);
+});
 
+// ============================================================
+// DEBUG HELPERS
+// ============================================================
 
-// =========================================================
-// INITIALIZATION
-// =========================================================
+// These are useful during your demo testing.
+// Open browser console and type:
+// forceWin()
+// forceLoss()
+
+window.forceWin = function () {
+  if (!gameRunning) return;
+
+  moths = [];
+  totalSwats += 1;
+
+  endGame(true);
+};
+
+window.forceLoss = function () {
+  if (!gameRunning) return;
+
+  endGame(false);
+};
 
 console.log(
-  "======================================"
+  "%cGRACE HOPPER'S BUG HUNT",
+  "color:#b7d69a;font-size:20px;font-weight:bold;"
 );
 
 console.log(
-  "GRACE HOPPER BUG HUNT"
-);
-
-console.log(
-  "Frontend initialized."
-);
-
-console.log(
-  "Persistent logbook entries:",
-  loadLogbook().length
-);
-
-console.log(
-  "======================================"
+  "The ancient machine awaiteth thy mistakes."
 );
