@@ -8,7 +8,7 @@
    CONFIG
    ========================================================= */
 
-const BACKEND_URL = "http://localhost:5000/run";
+const BACKEND_URL = "https://hoppers-hopping-backend.onrender.com";
 
 const GAME_CONFIG = {
   startingLives: 3,
