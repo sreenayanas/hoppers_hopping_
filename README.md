@@ -74,7 +74,7 @@ python -m http.server 5500
 ### Project Documentation
 For Software:
 
-Hopper's Hoppin (The Grace Hopper Bug Hunt) is a useless Python debugging game. The backend, built with Flask, receives Python code from the frontend and executes it. It determines whether the code runs successfully or identifies the type of error that occurred.
+Hopper's Hopping is a useless Python debugging game. The backend, built with Flask, receives Python code from the frontend and executes it. It determines whether the code runs successfully or identifies the type of error that occurred.
 
 Instead of displaying the actual error message or line number, the frontend turns the error into a chaotic game where Grace Hopper battles bugs/moths in a haunted 1947 computer laboratory.
 
